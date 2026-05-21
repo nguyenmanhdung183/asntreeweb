@@ -153,6 +153,21 @@ localStorage.removeItem('asn_comments')
 - [ ] Deploy với `npm run deploy`
 - [ ] Update API URL nếu cần
 
+## 🌐 Deploy frontend tự động với GitHub + Cloudflare Pages
+
+1. Tạo các GitHub secrets trong repo settings:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+   - `CLOUDFLARE_PROJECT_NAME`
+
+2. Commit và push lên nhánh `main`.
+
+3. GitHub Actions sẽ build app bằng `npm run build` và deploy thư mục `dist/` lên Pages.
+
+4. Mở link Cloudflare Pages của bạn để xem web frontend.
+
+> Lưu ý: Worker API vẫn có thể chạy riêng tại `https://asntreeweb-comments.nguyendung010803.workers.dev/api/comments`, còn Pages sẽ hiển thị giao diện web.
+
 ## 📞 Support
 
 Nếu có vấn đề:
