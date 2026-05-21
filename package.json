@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "generate-manifest": "node scripts/generate-data-manifest.js",
+    "predev": "npm run generate-manifest",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"

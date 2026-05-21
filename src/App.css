@@ -120,6 +120,288 @@
   min-width: 0;
 }
 
+.main-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tree-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-panel {
+  flex: 0 0 auto;
+  min-width: 280px;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: var(--border);
+  transition: background 0.2s;
+}
+
+.panel-resize-handle:hover {
+  background: var(--accent);
+}
+
+.panel-header {
+  margin-bottom: 14px;
+}
+
+.panel-title {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.panel-sub {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.comment-node-name {
+  color: var(--accent2);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  word-break: break-word;
+}
+
+.comment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.comment-field label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.meta-field label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  font-size: 11px;
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.meta-value.meta-path {
+  font-size: 10px;
+  max-height: 60px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.comment-field input,
+.comment-field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.comment-field textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.comment-actions {
+  margin-top: 8px;
+}
+
+.panel-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.comment-open {
+  border: none;
+  background: transparent;
+  color: var(--accent2);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 0 6px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.comment-open:hover {
+  color: #60a5fa;
+}
+
+.comment-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: auto;
+  min-width: 100px;
+  max-width: 250px;
+  background: rgba(79,158,255,0.12);
+  border: 1px solid rgba(79,158,255,0.24);
+  border-radius: 12px;
+  padding: 2px 10px;
+  margin-left: auto;
+  margin-right: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.comment-preview-box {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: auto;
+  min-width: 100px;
+  max-width: 200px;
+  background: rgba(79,158,255,0.14);
+  border: 1px solid rgba(79,158,255,0.28);
+  border-radius: 12px;
+  padding: 2px 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.comment-preview-box .comment-preview-summary {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-node .indent-guide {
+  background: linear-gradient(90deg, rgba(79,158,255,0.2) 0%, rgba(79,158,255,0.2) 100%);
+}
+
+.tree-node.level-1 .indent-guide {
+  background: linear-gradient(90deg, rgba(45,217,159,0.2) 0%, rgba(45,217,159,0.2) 100%);
+}
+
+.tree-node.level-2 .indent-guide {
+  background: linear-gradient(90deg, rgba(255,169,54,0.2) 0%, rgba(255,169,54,0.2) 100%);
+}
+
+.tree-node.level-3 .indent-guide {
+  background: linear-gradient(90deg, rgba(240,114,178,0.2) 0%, rgba(240,114,178,0.2) 100%);
+}
+
+.tree-node.level-4 .indent-guide {
+  background: linear-gradient(90deg, rgba(186,124,255,0.2) 0%, rgba(186,124,255,0.2) 100%);
+}
+
+.tree-node.level-5 .indent-guide,
+.tree-node.level-6 .indent-guide,
+.tree-node.level-7 .indent-guide {
+  background: linear-gradient(90deg, rgba(45,217,255,0.2) 0%, rgba(45,217,255,0.2) 100%);
+}
+
+.comment-preview-summary {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comment-preview.empty .comment-preview-summary {
+  color: var(--border);
+  font-style: italic;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px 0 0;
+  cursor: default;
+  border-radius: 0;
+  user-select: none;
+  transition: background 0.08s;
+  position: relative;
+  gap: 6px;
+  min-width: max-content;
+}
+
+.node-toggle {
+  width: 20px;
+  flex-shrink: 0;
+  color: var(--expand);
+  font-size: 14px;
+  text-align: center;
+  transition: transform 0.15s, color 0.15s;
+}
+
+.tree-node:hover .node-toggle {
+  color: var(--accent);
+}
+
 /* ── Toolbar ─────────────────────────────────────────────────────────────────── */
 .toolbar {
   display: flex;
@@ -211,7 +493,8 @@
 /* ── Tree Container ───────────────────────────────────────────────────────────── */
 .tree-container {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  min-width: 0;
   padding: 8px 0;
 }
 
@@ -224,13 +507,15 @@
 .tree-node {
   display: flex;
   align-items: center;
-  height: 28px;
+  min-height: 28px;
   padding-right: 16px;
   cursor: default;
   border-radius: 0;
   user-select: none;
   transition: background 0.08s;
   position: relative;
+  gap: 6px;
+  min-width: max-content;
 }
 
 .tree-node:hover { background: var(--hover); }
@@ -267,12 +552,13 @@
 .icon-closed { color: var(--folder); }
 
 .node-name {
-  flex: 1;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   padding-left: 4px;
   font-size: 12.5px;
+  min-width: 0;
 }
 
 .tree-node.folder .node-name {

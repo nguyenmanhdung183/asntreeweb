@@ -3,22 +3,33 @@ import { Tree } from 'react-arborist'
 import { parseTxtToTree } from './parser.js'
 import './App.css'
 
-// ─── file manifest (add more here as you drop .txt into public/data/) ─────────
-const FILE_LIST = ['e2.txt', 'ric.txt']
+// ─── file manifest (auto: public/data/manifest.json preferred) ─────────
+const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
+const MANIFEST_URL = './data/manifest.json'
 
 // ─── Node renderer ────────────────────────────────────────────────────────────
-function Node({ node, style, dragHandle }) {
+function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode }) {
   const isLeaf = !node.data.children?.length
   const hasChildren = !isLeaf
+  const summary = comment?.summary?.trim()
+  
+  // Display name based on mode
+  let displayName = node.data.name
+  if (displayMode === 'type' && node.data.presence) {
+    displayName = `${node.data.type || '?'} [${node.data.presence}]`
+  }
 
   return (
     <div
       ref={dragHandle}
       style={style}
-      className={`tree-node ${node.isSelected ? 'selected' : ''} ${isLeaf ? 'leaf' : 'folder'}`}
-      onClick={() => hasChildren && node.toggle()}
+      className={`tree-node level-${node.level} ${selected ? 'selected' : ''} ${isLeaf ? 'leaf' : 'folder'}`}
+      onClick={() => {
+        if (hasChildren) node.toggle()
+        onSelect(node.data.id, node.data.name)
+      }}
     >
-      <span className="indent-guide" style={{ width: node.level * 16 }} />
+      <span className="indent-guide" style={{ width: node.level * 24 }} />
 
       <span className="node-toggle">
         {hasChildren ? (node.isOpen ? '▾' : '▸') : '·'}
@@ -28,7 +39,29 @@ function Node({ node, style, dragHandle }) {
         {isLeaf ? '◆' : node.isOpen ? '◻' : '◼'}
       </span>
 
-      <span className="node-name">{node.data.name}</span>
+      <span className="node-name">{displayName}</span>
+
+      <button
+        className="comment-open"
+        type="button"
+        onClick={e => {
+          e.stopPropagation()
+          onSelect(node.data.id, node.data.name)
+        }}
+      >
+        {summary ? '💬' : '✎'}
+      </button>
+
+      {showAllComments && summary && (
+        <div
+          className="comment-preview-box"
+          onClick={e => e.stopPropagation()}
+        >
+          <span className="comment-preview-summary">
+            {summary}
+          </span>
+        </div>
+      )}
 
       {hasChildren && (
         <span className="node-badge">{node.data.children.length}</span>
@@ -50,15 +83,113 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [treeHeight, setTreeHeight] = useState(600)
   const [totalNodes, setTotalNodes] = useState(0)
+  const [selectedNodeId, setSelectedNodeId] = useState(null)
+  const [selectedNodeName, setSelectedNodeName] = useState('')
+  const [comments, setComments] = useState({})
+  const [showAllComments, setShowAllComments] = useState(true)
+  const [panelWidth, setPanelWidth] = useState(320)
+  const [isDraggingPanel, setIsDraggingPanel] = useState(false)
+  const [displayMode, setDisplayMode] = useState('varname') // 'varname' or 'type'
   const containerRef = useRef(null)
   const treeRef = useRef(null)
+  const panelRef = useRef(null)
 
-  // Load all txt files
+  const handleSelectNode = (nodeId, nodeName) => {
+    setSelectedNodeId(nodeId)
+    setSelectedNodeName(nodeName)
+  }
+
+  const updateCommentField = (nodeId, field, value) => {
+    setComments(prev => ({
+      ...prev,
+      [nodeId]: {
+        ...(prev[nodeId] ?? { summary: '', main: '' }),
+        [field]: value,
+      },
+    }))
+  }
+
+  // Detect if current file is structured protocol format
+  const isStructuredFile = useMemo(() => {
+    if (!activeFile?.tree?.length) return false
+    return activeFile.tree.some(n => n.type || n.structType || n.presence || n.path)
+  }, [activeFile])
+
+  // Handle panel drag to resize
+  useEffect(() => {
+    if (!isDraggingPanel) return
+
+    const handleMouseMove = (e) => {
+      const mainContent = document.querySelector('.main-content')
+      if (!mainContent) return
+      const newWidth = mainContent.clientWidth - e.clientX
+      if (newWidth >= 200 && newWidth <= 600) {
+        setPanelWidth(newWidth)
+      }
+    }
+
+    const handleMouseUp = () => {
+      setIsDraggingPanel(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDraggingPanel])
+
+
+  const selectedComment = selectedNodeId ? comments[selectedNodeId] : null
+
+  // Get the currently selected node for its metadata
+  const getSelectedNodeMetadata = useCallback(() => {
+    if (!selectedNodeId || !activeFile) return {}
+    const nodeId = selectedNodeId.split(':')[1]
+    
+    let foundNode = null
+    function search(nodes) {
+      for (const n of nodes) {
+        if (n.id === nodeId) {
+          foundNode = n
+          return
+        }
+        if (n.children?.length) search(n.children)
+      }
+    }
+    search(activeFile.tree)
+    
+    return foundNode ? {
+      type: foundNode.type || '',
+      structType: foundNode.structType || '',
+      presence: foundNode.presence || '',
+      path: foundNode.path || '',
+    } : {}
+  }, [selectedNodeId, activeFile])
+
+  const selectedNodeMetadata = getSelectedNodeMetadata()
+  const mergedComment = selectedComment ? { ...selectedNodeMetadata, ...selectedComment } : selectedNodeMetadata
+
+  // Load all txt files (reads public/data/manifest.json when available)
   useEffect(() => {
     async function loadFiles() {
       setLoading(true)
       const loaded = []
-      for (const fname of FILE_LIST) {
+
+      // try to read manifest.json first, fall back to hardcoded list
+      let fileList = FALLBACK_FILE_LIST
+      try {
+        const mres = await fetch(MANIFEST_URL)
+        if (mres.ok) {
+          const mf = await mres.json()
+          if (Array.isArray(mf) && mf.length) fileList = mf
+        }
+      } catch (e) {
+        // ignore, we'll use fallback
+      }
+
+      for (const fname of fileList) {
         try {
           const res = await fetch(`./data/${fname}`)
           const text = await res.text()
@@ -120,7 +251,12 @@ export default function App() {
             <button
               key={f.fname}
               className={`file-item ${activeFile?.fname === f.fname ? 'active' : ''}`}
-              onClick={() => { setActiveFile(f); setSearch('') }}
+              onClick={() => {
+                setActiveFile(f)
+                setSearch('')
+                setSelectedNodeId(null)
+                setSelectedNodeName('')
+              }}
             >
               <span className="file-icon">📄</span>
               <span className="file-name">{f.name}</span>
@@ -172,6 +308,26 @@ export default function App() {
           </div>
 
           <div className="toolbar-right">
+            {isStructuredFile && (
+              <button
+                className={`btn-tool ${displayMode === 'type' ? 'active' : ''}`}
+                type="button"
+                onClick={() => setDisplayMode(displayMode === 'varname' ? 'type' : 'varname')}
+                title={displayMode === 'varname' ? 'Show type with presence' : 'Show variable name'}
+              >
+                <span>{displayMode === 'type' ? '🏷' : '📝'}</span>
+                {displayMode === 'varname' ? 'Type view' : 'Name view'}
+              </button>
+            )}
+            <button
+              className={`btn-tool ${showAllComments ? 'active' : ''}`}
+              type="button"
+              onClick={() => setShowAllComments(prev => !prev)}
+              title="Show or hide all summary boxes"
+            >
+              <span>{showAllComments ? '☑' : '☐'}</span>
+              {showAllComments ? 'Hide summaries' : 'Show summaries'}
+            </button>
             <button className="btn-tool" onClick={handleExpandAll} title="Expand all">
               <span>⊞</span> Expand
             </button>
@@ -181,51 +337,132 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tree area */}
-        <div className="tree-container" ref={containerRef}>
-          {loading ? (
-            <div className="loading">
-              <div className="loading-spinner" />
-              <span>Loading ASN data...</span>
+        <div className="main-content">
+          <div className="tree-area">
+            {/* Tree area */}
+            <div className="tree-container" ref={containerRef}>
+              {loading ? (
+                <div className="loading">
+                  <div className="loading-spinner" />
+                  <span>Loading ASN data...</span>
+                </div>
+              ) : !activeFile ? (
+                <div className="empty">Select a file to view</div>
+              ) : (
+                <Tree
+                  ref={treeRef}
+                  data={activeTree}
+                  openByDefault={false}
+                  width="100%"
+                  height={treeHeight}
+                  indent={28}
+                  rowHeight={28}
+                  searchTerm={search}
+                  searchMatch={searchMatch}
+                  disableDrag
+                  disableDrop
+                >
+                  {props => {
+                    const nodeKey = `${activeFile?.fname}:${props.node.data.id}`
+                    return (
+                      <Node
+                        {...props}
+                        selected={selectedNodeId === nodeKey}
+                        comment={comments[nodeKey]}
+                        showAllComments={showAllComments}
+                        displayMode={displayMode}
+                        onSelect={(id, name) => handleSelectNode(`${activeFile?.fname}:${id}`, name)}
+                      />
+                    )
+                  }}
+                </Tree>
+              )}
             </div>
-          ) : !activeFile ? (
-            <div className="empty">Select a file to view</div>
-          ) : (
-            <Tree
-              ref={treeRef}
-              data={activeTree}
-              openByDefault={false}
-              width="100%"
-              height={treeHeight}
-              indent={0}
-              rowHeight={28}
-              searchTerm={search}
-              searchMatch={searchMatch}
-              disableDrag
-              disableDrop
-            >
-              {Node}
-            </Tree>
-          )}
-        </div>
 
-        {/* Status bar */}
-        <div className="statusbar">
-          <span className="status-item">
-            <span className="status-dot active" />
-            {activeFile ? activeFile.fname : '—'}
-          </span>
-          <span className="status-item">
-            {totalNodes} nodes
-          </span>
-          {search && (
-            <span className="status-item highlight">
-              Filtering: "{search}"
-            </span>
-          )}
-          <span className="status-item muted">
-            Click ▸ to expand · Click ▾ to collapse
-          </span>
+            {/* Status bar */}
+            <div className="statusbar">
+              <span className="status-item">
+                <span className="status-dot active" />
+                {activeFile ? activeFile.fname : '—'}
+              </span>
+              <span className="status-item">
+                {totalNodes} nodes
+              </span>
+              {search && (
+                <span className="status-item highlight">
+                  Filtering: "{search}"
+                </span>
+              )}
+              <span className="status-item muted">
+                Click ▸ to expand · Click ▾ to collapse
+              </span>
+            </div>
+          </div>
+
+          <aside 
+            className="comment-panel" 
+            ref={panelRef}
+            style={{ width: `${panelWidth}px` }}
+          >
+            <div 
+              className="panel-resize-handle"
+              onMouseDown={() => setIsDraggingPanel(true)}
+              title="Drag to resize"
+            />
+            <div className="panel-header">
+              <div className="panel-title">Comment details</div>
+              <div className="panel-sub">Select a node to edit summary & content</div>
+            </div>
+
+            {selectedNodeId ? (
+              <div className="panel-body">
+                <div className="comment-node-name">{selectedNodeName}</div>
+
+                {mergedComment?.path && (
+                  <>
+                    <div className="meta-field">
+                      <label>Type</label>
+                      <div className="meta-value">{mergedComment.type || '—'}</div>
+                    </div>
+                    <div className="meta-field">
+                      <label>Struct Type</label>
+                      <div className="meta-value">{mergedComment.structType || '—'}</div>
+                    </div>
+                    <div className="meta-field">
+                      <label>Presence</label>
+                      <div className="meta-value">{mergedComment.presence || '—'}</div>
+                    </div>
+                    <div className="meta-field">
+                      <label>Path</label>
+                      <div className="meta-value meta-path">{mergedComment.path || '—'}</div>
+                    </div>
+                    <hr style={{ margin: '12px 0', borderColor: 'var(--border)' }} />
+                  </>
+                )}
+
+                <div className="comment-field">
+                  <label>Summary</label>
+                  <input
+                    value={selectedComment?.summary || ''}
+                    onChange={e => updateCommentField(selectedNodeId, 'summary', e.target.value)}
+                    placeholder="Short summary shown on the line"
+                  />
+                </div>
+                <div className="comment-field">
+                  <label>Main content</label>
+                  <textarea
+                    value={selectedComment?.main || ''}
+                    onChange={e => updateCommentField(selectedNodeId, 'main', e.target.value)}
+                    placeholder="Detailed comment content"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="panel-empty">
+                Click the comment icon on a node line to open the comment editor.
+              </div>
+            )}
+          </aside>
         </div>
       </main>
     </div>

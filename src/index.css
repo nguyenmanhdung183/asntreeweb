@@ -3,19 +3,19 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:       #0d0f14;
-  --panel:    #13161d;
-  --border:   #1e2330;
-  --hover:    #1a1f2e;
-  --selected: #1c2a45;
-  --accent:   #3b82f6;
-  --accent2:  #22d3ee;
-  --text:     #c9d1e0;
-  --muted:    #4a5568;
-  --leaf:     #94a3b8;
-  --folder:   #60a5fa;
-  --expand:   #f59e0b;
-  --success:  #34d399;
+  --bg:       #0f1219;
+  --panel:    #16191f;
+  --border:   #2a2f3f;
+  --hover:    #212735;
+  --selected: #1f2d4d;
+  --accent:   #4f9eff;
+  --accent2:  #2dd9ff;
+  --text:     #e4e9f0;
+  --muted:    #6a7a8f;
+  --leaf:     #a8b8cc;
+  --folder:   #70b5ff;
+  --expand:   #ffa936;
+  --success:  #48dfa8;
   --mono:     'JetBrains Mono', monospace;
   --sans:     'Syne', sans-serif;
 }
