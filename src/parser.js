@@ -1,42 +1,60 @@
-export function parseTree(text) {
+/**
+ * Parse ASN/protocol TXT files into tree JSON
+ * Supports tab or space-based indentation
+ */
 
-  const lines = text
-    .split("\n")
-    .filter(line => line.trim() !== "");
+let nodeCounter = 0
 
-  const root = [];
+function getIndentLevel(line) {
+  let count = 0
+  for (const ch of line) {
+    if (ch === '\t') { count++; continue }
+    // 2-space or 4-space indent support
+    if (ch === ' ') { count += 0.25; continue }
+    break
+  }
+  return Math.round(count)
+}
 
-  // stack[level] = node
-  const stack = [];
+function createNode(name) {
+  return {
+    id: String(++nodeCounter),
+    name: name.trim(),
+    children: [],
+  }
+}
+
+export function parseTxtToTree(text) {
+  nodeCounter = 0
+  const lines = text.split('\n').filter(l => l.trim() !== '')
+
+  const root = { id: 'root', name: '__root__', children: [] }
+  const stack = [{ node: root, level: -1 }]
 
   for (const line of lines) {
+    const level = getIndentLevel(line)
+    const node = createNode(line.trim())
 
-    // Đếm TAB đầu dòng
-    const level =
-      line.match(/^\t*/)[0].length;
-
-    const node = {
-      id: crypto.randomUUID(),
-      name: line.trim(),
-      children: []
-    };
-
-    // Root node
-    if (level === 0) {
-      root.push(node);
-    } else {
-
-      // Parent = level - 1
-      const parent = stack[level - 1];
-
-      if (parent) {
-        parent.children.push(node);
-      }
+    // pop stack until we find a parent with smaller level
+    while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+      stack.pop()
     }
 
-    // Save node theo level
-    stack[level] = node;
+    const parent = stack[stack.length - 1].node
+    parent.children.push(node)
+    stack.push({ node, level })
   }
 
-  return root;
+  return root.children
+}
+
+export function flattenTree(nodes, depth = 0) {
+  const result = []
+  for (const node of nodes) {
+    result.push({ ...node, depth })
+    if (node.children?.length) {
+      result.push(...flattenTree(node.children, depth + 1))
+    }
+  }
+  return result
 }
