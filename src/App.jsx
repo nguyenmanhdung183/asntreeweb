@@ -60,7 +60,7 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 }
 
 // ─── API Endpoints ────────────────────────────────────────────────────────────
-const COMMENTS_API = import.meta.env.VITE_COMMENTS_API || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? 'https://asntreeweb-comments.nguyendung010803.workers.dev/api/comments' : '/api/comments')
+const COMMENTS_API = import.meta.env.VITE_COMMENTS_API || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? 'https://asntreeweb.nguyendung010803.workers.dev/api/comments' : '/api/comments')
 
 // Load comments from Cloudflare KV
 async function loadCommentsFromAPI() {

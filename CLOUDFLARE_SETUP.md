@@ -119,7 +119,7 @@ Comments sẽ tự động:
 - ✅ Backup vào localStorage nếu API fail
 
 > Lưu ý: Khi deploy Pages, file `.env.production` trong repo sẽ chỉ định API worker URL chính xác:
-> `VITE_COMMENTS_API=https://asntreeweb-comments.nguyendung010803.workers.dev/api/comments`
+> `VITE_COMMENTS_API=https://asntreeweb.nguyendung010803.workers.dev/api/comments`
 
 ## 💾 Fallback
 
