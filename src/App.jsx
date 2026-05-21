@@ -64,54 +64,29 @@ const COMMENTS_API = import.meta.env.VITE_COMMENTS_API || (typeof window !== 'un
 
 // Load comments from Cloudflare KV
 async function loadCommentsFromAPI() {
-  try {
-    const res = await fetch(COMMENTS_API)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return await res.json()
-  } catch (e) {
-    console.warn('Failed to load comments from API:', e)
-    // Fallback to localStorage
-    try {
-      const stored = localStorage.getItem('asn_comments')
-      return stored ? JSON.parse(stored) : {}
-    } catch {
-      return {}
-    }
-  }
+  const res = await fetch(COMMENTS_API)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return await res.json()
 }
 
 // Save comments to Cloudflare KV
 async function saveCommentsToAPI(comments) {
-  try {
-    const res = await fetch(COMMENTS_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(comments),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    // Also save to localStorage as backup
-    localStorage.setItem('asn_comments', JSON.stringify(comments))
-    return true
-  } catch (e) {
-    console.warn('Failed to save comments to API:', e)
-    // Fallback to localStorage
-    localStorage.setItem('asn_comments', JSON.stringify(comments))
-    return false
-  }
+  const res = await fetch(COMMENTS_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(comments),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  localStorage.setItem('asn_comments', JSON.stringify(comments))
+  return true
 }
 
 // Clear all comments from API
 async function clearCommentsFromAPI() {
-  try {
-    const res = await fetch(COMMENTS_API, { method: 'DELETE' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    localStorage.removeItem('asn_comments')
-    return true
-  } catch (e) {
-    console.warn('Failed to clear comments:', e)
-    localStorage.removeItem('asn_comments')
-    return false
-  }
+  const res = await fetch(COMMENTS_API, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  localStorage.removeItem('asn_comments')
+  return true
 }
 
 // ─── Search highlight ─────────────────────────────────────────────────────────
@@ -146,7 +121,8 @@ export default function App() {
   const [displayMode, setDisplayMode] = useState('varname') // 'varname' or 'type'
   const [overlayWidth, setOverlayWidth] = useState(220)
   const [isDraggingOverlay, setIsDraggingOverlay] = useState(false)
-  const [syncStatus, setSyncStatus] = useState('idle') // 'idle', 'saving', 'synced'
+  const [syncStatus, setSyncStatus] = useState('idle') // 'idle', 'saving', 'synced', 'error'
+  const [syncError, setSyncError] = useState('')
   const containerRef = useRef(null)
   const treeRef = useRef(null)
   const panelRef = useRef(null)
@@ -297,9 +273,23 @@ export default function App() {
       setLoading(false)
       
       // Load comments from API
-      loadCommentsFromAPI().then(loadedComments => {
+      try {
+        const loadedComments = await loadCommentsFromAPI()
         setComments(loadedComments)
-      })
+        setSyncStatus('synced')
+        setSyncError('')
+      } catch (e) {
+        console.warn('Failed to load comments from API:', e)
+        setSyncError(`Could not load comments from backend: ${e.message}`)
+        setSyncStatus('error')
+        try {
+          const stored = localStorage.getItem('asn_comments')
+          const saved = stored ? JSON.parse(stored) : {}
+          setComments(saved)
+        } catch {
+          setComments({})
+        }
+      }
     }
     loadFiles()
   }, [])
@@ -309,8 +299,17 @@ export default function App() {
     if (Object.keys(comments).length === 0) return
     setSyncStatus('saving')
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(() => {
-      saveCommentsToAPI(comments).then(() => setSyncStatus('synced'))
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveCommentsToAPI(comments)
+        setSyncStatus('synced')
+        setSyncError('')
+      } catch (e) {
+        console.warn('Failed to save comments to API:', e)
+        setSyncError(`Could not save comments to backend: ${e.message}`)
+        setSyncStatus('error')
+        localStorage.setItem('asn_comments', JSON.stringify(comments))
+      }
     }, 2000)
     
     return () => {
@@ -609,8 +608,13 @@ export default function App() {
                 Select a node to edit summary & content
                 {syncStatus !== 'idle' && (
                   <span className={`sync-status ${syncStatus}`}>
-                    {syncStatus === 'saving' ? '⏱ Saving...' : '✓ Synced'}
+                    {syncStatus === 'saving' ? '⏱ Saving...' : syncStatus === 'synced' ? '✓ Synced' : '⚠ Error'}
                   </span>
+                )}
+                {syncError && (
+                  <div className="sync-error" title={syncError}>
+                    {syncError}
+                  </div>
                 )}
               </div>
             </div>
