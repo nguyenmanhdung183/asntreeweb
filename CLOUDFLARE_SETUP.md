@@ -169,7 +169,7 @@ localStorage.removeItem('asn_comments')
 
 4. Mở link Cloudflare Pages của bạn để xem web frontend.
 
-> Lưu ý: Worker API vẫn có thể chạy riêng tại `https://asntreeweb-comments.nguyendung010803.workers.dev/api/comments`, nhưng trang web frontend phải dùng link Cloudflare Pages để hiển thị giao diện.
+> Lưu ý: Worker API vẫn có thể chạy riêng tại `https://asntreeweb.nguyendung010803.workers.dev/api/comments`, nhưng trang web frontend phải dùng link Cloudflare Pages để hiển thị giao diện.
 
 > Nếu bạn mở link worker trực tiếp, nó sẽ trả JSON vì worker hiện chỉ là API backend.
 

@@ -89,6 +89,16 @@ async function clearCommentsFromAPI() {
   return true
 }
 
+// ─── Normalization helpers ───────────────────────────────────────────────────
+function normalizeString(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[_\s]+/g, ' ')
+    .trim()
+}
+
 // ─── Search highlight ─────────────────────────────────────────────────────────
 function searchMatch(node, term) {
   const normalizedNode = normalizeString(node.data.name)
