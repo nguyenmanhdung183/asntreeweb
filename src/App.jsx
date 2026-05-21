@@ -59,9 +59,59 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
   )
 }
 
-// ─── Normalize string for search (remove _, space, lowercase) ─────────────────
-function normalizeString(str) {
-  return str.replace(/[_\s]/g, '').toLowerCase()
+// ─── API Endpoints ────────────────────────────────────────────────────────────
+const COMMENTS_API = '/api/comments'
+
+// Load comments from Cloudflare KV
+async function loadCommentsFromAPI() {
+  try {
+    const res = await fetch(COMMENTS_API)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.json()
+  } catch (e) {
+    console.warn('Failed to load comments from API:', e)
+    // Fallback to localStorage
+    try {
+      const stored = localStorage.getItem('asn_comments')
+      return stored ? JSON.parse(stored) : {}
+    } catch {
+      return {}
+    }
+  }
+}
+
+// Save comments to Cloudflare KV
+async function saveCommentsToAPI(comments) {
+  try {
+    const res = await fetch(COMMENTS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(comments),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    // Also save to localStorage as backup
+    localStorage.setItem('asn_comments', JSON.stringify(comments))
+    return true
+  } catch (e) {
+    console.warn('Failed to save comments to API:', e)
+    // Fallback to localStorage
+    localStorage.setItem('asn_comments', JSON.stringify(comments))
+    return false
+  }
+}
+
+// Clear all comments from API
+async function clearCommentsFromAPI() {
+  try {
+    const res = await fetch(COMMENTS_API, { method: 'DELETE' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    localStorage.removeItem('asn_comments')
+    return true
+  } catch (e) {
+    console.warn('Failed to clear comments:', e)
+    localStorage.removeItem('asn_comments')
+    return false
+  }
 }
 
 // ─── Search highlight ─────────────────────────────────────────────────────────
@@ -96,9 +146,11 @@ export default function App() {
   const [displayMode, setDisplayMode] = useState('varname') // 'varname' or 'type'
   const [overlayWidth, setOverlayWidth] = useState(220)
   const [isDraggingOverlay, setIsDraggingOverlay] = useState(false)
+  const [syncStatus, setSyncStatus] = useState('idle') // 'idle', 'saving', 'synced'
   const containerRef = useRef(null)
   const treeRef = useRef(null)
   const panelRef = useRef(null)
+  const saveTimeoutRef = useRef(null)
 
   const handleSelectNode = (nodeId, nodeName) => {
     setSelectedNodeId(nodeId)
@@ -106,13 +158,22 @@ export default function App() {
   }
 
   const updateCommentField = (nodeId, field, value) => {
-    setComments(prev => ({
-      ...prev,
-      [nodeId]: {
-        ...(prev[nodeId] ?? { summary: '', main: '' }),
-        [field]: value,
-      },
-    }))
+    setComments(prev => {
+      const updated = {
+        ...prev,
+        [nodeId]: {
+          ...(prev[nodeId] ?? { summary: '', main: '' }),
+          [field]: value,
+        },
+      }
+      // Auto-save with debounce
+      setSyncStatus('saving')
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => {
+        saveCommentsToAPI(updated).then(() => setSyncStatus('synced'))
+      }, 1000)
+      return updated
+    })
   }
 
   // Detect if current file is structured protocol format
@@ -234,11 +295,28 @@ export default function App() {
       setFiles(loaded)
       if (loaded.length) setActiveFile(loaded[0])
       setLoading(false)
+      
+      // Load comments from API
+      loadCommentsFromAPI().then(loadedComments => {
+        setComments(loadedComments)
+      })
     }
     loadFiles()
   }, [])
 
-  // Update tree height on resize
+  // Auto-save comments when they change (with debounce)
+  useEffect(() => {
+    if (Object.keys(comments).length === 0) return
+    setSyncStatus('saving')
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      saveCommentsToAPI(comments).then(() => setSyncStatus('synced'))
+    }, 2000)
+    
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    }
+  }, [comments])
   useEffect(() => {
     function measure() {
       if (containerRef.current) {
@@ -527,7 +605,14 @@ export default function App() {
             />
             <div className="panel-header">
               <div className="panel-title">Comment details</div>
-              <div className="panel-sub">Select a node to edit summary & content</div>
+              <div className="panel-sub">
+                Select a node to edit summary & content
+                {syncStatus !== 'idle' && (
+                  <span className={`sync-status ${syncStatus}`}>
+                    {syncStatus === 'saving' ? '⏱ Saving...' : '✓ Synced'}
+                  </span>
+                )}
+              </div>
             </div>
 
             {selectedNodeId ? (
@@ -575,7 +660,20 @@ export default function App() {
               </div>
             ) : (
               <div className="panel-empty">
-                Click the comment icon on a node line to open the comment editor.
+                <p>Click the comment icon on a node line to open the comment editor.</p>
+                {Object.keys(comments).length > 0 && (
+                  <button
+                    className="btn-clear-comments"
+                    onClick={() => {
+                      if (confirm('Delete all comments? This cannot be undone.')) {
+                        clearCommentsFromAPI()
+                        setComments({})
+                      }
+                    }}
+                  >
+                    🗑 Clear all comments
+                  </button>
+                )}
               </div>
             )}
           </aside>
