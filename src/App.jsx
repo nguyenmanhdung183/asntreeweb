@@ -8,7 +8,7 @@ const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
 const MANIFEST_URL = './data/manifest.json'
 
 // ─── Node renderer ────────────────────────────────────────────────────────────
-function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode }) {
+function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode, rowIndex }) {
   const isLeaf = !node.data.children?.length
   const hasChildren = !isLeaf
   const summary = comment?.summary?.trim()
@@ -39,7 +39,19 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
         {isLeaf ? '◆' : node.isOpen ? '◻' : '◼'}
       </span>
 
+      <span className="node-index">#{rowIndex}</span>
       <span className="node-name">{displayName}</span>
+      <button
+        className="node-close-btn"
+        type="button"
+        onClick={e => {
+          e.stopPropagation()
+          try { node.close() } catch (err) { node.toggle() }
+        }}
+        title="Close this node"
+      >
+        ⊖
+      </button>
           {String(node.data?.structType || node.structType || '').toUpperCase() === 'RECURSIVE' && (
             <span className="node-recursive-badge">RECUR</span>
           )}
@@ -128,6 +140,7 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [selectedNodeName, setSelectedNodeName] = useState('')
   const [comments, setComments] = useState({})
+  const [searchComment, setSearchComment] = useState('')
   const [showAllComments, setShowAllComments] = useState(true)
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
@@ -374,6 +387,38 @@ export default function App() {
     return result
   }, [activeTree])
 
+  // Matches for search navigation (name or comment search)
+  const [matchCursor, setMatchCursor] = useState(0)
+  const matchedNodes = useMemo(() => {
+    if (!activeFile) return []
+    const results = []
+    const termName = normalizeString(search).trim()
+    const termComment = normalizeString(searchComment).trim()
+    for (const { node } of flatNodeList) {
+      const nodeKey = `${activeFile.fname}:${node.id}`
+      if (termComment) {
+        const c = comments[nodeKey]
+        const text = `${c?.summary ?? ''} ${c?.main ?? ''}`
+        if (normalizeString(text).includes(termComment)) results.push(nodeKey)
+      } else if (termName) {
+        if (normalizeString(node.name).includes(termName)) results.push(nodeKey)
+      }
+    }
+    return results
+  }, [activeFile, flatNodeList, comments, search, searchComment])
+
+  const goToMatch = (idx) => {
+    if (!matchedNodes.length) return
+    const i = ((idx % matchedNodes.length) + matchedNodes.length) % matchedNodes.length
+    setMatchCursor(i)
+    const nodeKey = matchedNodes[i]
+    setSelectedNodeId(nodeKey)
+    setSelectedNodeName(comments[nodeKey]?.summary ?? '')
+  }
+
+  const nextMatch = () => goToMatch(matchCursor + 1)
+  const prevMatch = () => goToMatch(matchCursor - 1)
+
   return (
     <div className="app">
       {/* ── Sidebar ── */}
@@ -460,9 +505,26 @@ export default function App() {
                 <button className="search-clear" onClick={() => setSearch('')}>✕</button>
               )}
             </div>
+            <div className="search-wrap comment-search">
+              <span className="search-icon">💬</span>
+              <input
+                className="search-input"
+                placeholder="Search comments..."
+                value={searchComment}
+                onChange={e => setSearchComment(e.target.value)}
+              />
+              {searchComment && (
+                <button className="search-clear" onClick={() => setSearchComment('')}>✕</button>
+              )}
+            </div>
           </div>
 
           <div className="toolbar-right">
+            <div className="search-nav">
+              <button className="nav-button" onClick={prevMatch} title="Previous match">◀</button>
+              <span className="match-badge">{matchedNodes.length ? `${matchCursor + 1}/${matchedNodes.length}` : '0/0'}</span>
+              <button className="nav-button" onClick={nextMatch} title="Next match">▶</button>
+            </div>
             {isStructuredFile && (
               <button
                 className={`btn-tool ${displayMode === 'type' ? 'active' : ''}`}
@@ -523,9 +585,11 @@ export default function App() {
                 >
                   {props => {
                     const nodeKey = `${activeFile?.fname}:${props.node.data.id}`
+                    const rowIndex = flatNodeList.findIndex(x => x.node.id === props.node.data.id)
                     return (
                       <Node
                         {...props}
+                        rowIndex={rowIndex}
                         selected={selectedNodeId === nodeKey}
                         comment={comments[nodeKey]}
                         showAllComments={showAllComments}
