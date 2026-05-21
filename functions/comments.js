@@ -58,6 +58,27 @@ export default {
         )
       }
 
+      // GET / or /api - Friendly info page
+      if (pathname === '/' && request.method === 'GET') {
+        return new Response(
+          JSON.stringify({ message: 'Use /api/comments to access the comments API' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        )
+      }
+
+      if (pathname === '/api' && request.method === 'GET') {
+        return new Response(
+          JSON.stringify({ message: 'Use /api/comments to access the comments API' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        )
+      }
+
       // Not found
       return new Response(
         JSON.stringify({ error: 'Not found' }),
