@@ -1,0 +1,4 @@
+E2SM-RC-ServiceLayerCause : (E2SM-RC-ServiceLayerCause) 					---- (CHOICE) ---- [UNK] ----PATH: E2SM-RC-ServiceLayerCause
+    ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2SM-RC-ServiceLayerCause->CauseRICrequest
+    ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2SM-RC-ServiceLayerCause->CauseRICservice
+    protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2SM-RC-ServiceLayerCause->CauseProtocol

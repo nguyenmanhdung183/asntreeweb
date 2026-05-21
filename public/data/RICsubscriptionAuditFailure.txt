@@ -1,0 +1,26 @@
+RICsubscriptionAuditFailure : (RICsubscriptionAuditFailure) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICsubscriptionAuditFailure
+    protocolIEs : (RICsubscriptionAuditFailure-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->RICrequestID->ricInstanceID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->Cause->CauseServiceLayer->ServiceLayerCause
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionAuditFailure->RICsubscriptionAuditFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError

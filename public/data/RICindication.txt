@@ -1,0 +1,12 @@
+RICindication : (RICindication) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICindication
+    protocolIEs : (RICindication-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICindication->RICindication-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICindication->RICindication-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICindication->RICindication-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICindication->RICindication-IEs->RICrequestID->ricInstanceID
+        RANfunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICindication->RICindication-IEs->RANfunctionID
+        RICactionID : (RICactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICindication->RICindication-IEs->RICactionID
+        RICindicationSN : (RICindicationSN) 					---- (PRIMITIVE) ---- [O] ----PATH: RICindication->RICindication-IEs->RICindicationSN
+        RICindicationType : (RICindicationType) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICindication->RICindication-IEs->RICindicationType
+        RICindicationHeader : (RICindicationHeader) 					---- (PRIMITIVE) ---- [M] ----PATH: RICindication->RICindication-IEs->RICindicationHeader
+        RICindicationMessage : (RICindicationMessage) 					---- (PRIMITIVE) ---- [M] ----PATH: RICindication->RICindication-IEs->RICindicationMessage
+        RICcallProcessID : (RICcallProcessID) 					---- (PRIMITIVE) ---- [O] ----PATH: RICindication->RICindication-IEs->RICcallProcessID

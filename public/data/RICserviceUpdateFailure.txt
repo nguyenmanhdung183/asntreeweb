@@ -1,0 +1,25 @@
+RICserviceUpdateFailure : (RICserviceUpdateFailure) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICserviceUpdateFailure
+    protocolIEs : (RICserviceUpdateFailure-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->TransactionID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->Cause->CauseServiceLayer->ServiceLayerCause
+        TimeToWait : (TimeToWait) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->TimeToWait
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICserviceUpdateFailure->RICserviceUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError

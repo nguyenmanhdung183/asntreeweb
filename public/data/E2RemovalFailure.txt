@@ -1,0 +1,24 @@
+E2RemovalFailure : (E2RemovalFailure) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2RemovalFailure
+    protocolIEs : (E2RemovalFailureIEs) 					---- (IE-LIST) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->TransactionID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->Cause->CauseServiceLayer->ServiceLayerCause
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalFailure->E2RemovalFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError

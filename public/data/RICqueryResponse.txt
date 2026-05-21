@@ -1,0 +1,7 @@
+RICqueryResponse : (RICqueryResponse) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICqueryResponse
+    protocolIEs : (RICqueryResponse-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICqueryResponse->RICqueryResponse-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICqueryResponse->RICqueryResponse-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICqueryResponse->RICqueryResponse-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICqueryResponse->RICqueryResponse-IEs->RICrequestID->ricInstanceID
+        RANfunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICqueryResponse->RICqueryResponse-IEs->RANfunctionID
+        RICqueryOutcome : (RICqueryOutcome) 					---- (PRIMITIVE) ---- [M] ----PATH: RICqueryResponse->RICqueryResponse-IEs->RICqueryOutcome

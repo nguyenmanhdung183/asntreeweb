@@ -1,0 +1,14 @@
+RICsubscriptionAuditRequest : (RICsubscriptionAuditRequest) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICsubscriptionAuditRequest
+    protocolIEs : (RICsubscriptionAuditRequest-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICrequestID->ricInstanceID
+        RICsubscriptionAuditFlag : (RICsubscriptionAuditFlag) 					---- (SEQUENCE) ---- [O] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditFlag
+            listedRecordsOnly : (ListedRecordsOnly) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditFlag->ListedRecordsOnly
+        RICsubscriptionAuditList : (RICsubscriptionAuditList) 					---- (SEQUENCE-OF-SINGLECONTAINER) ---- [O] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList
+            RICsubscriptionAudit-ItemIEs : (RICsubscriptionAudit-ItemIEs) 					---- (IE-LIST) ---- [UNK] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList->RICsubscriptionAudit-ItemIEs
+                RICsubscriptionAudit-Item : (RICsubscriptionAudit-Item) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList->RICsubscriptionAudit-ItemIEs->RICsubscriptionAudit-Item
+                    ricRequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList->RICsubscriptionAudit-ItemIEs->RICsubscriptionAudit-Item->RICrequestID
+                        ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList->RICsubscriptionAudit-ItemIEs->RICsubscriptionAudit-Item->RICrequestID->ricRequestorID
+                        ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList->RICsubscriptionAudit-ItemIEs->RICsubscriptionAudit-Item->RICrequestID->ricInstanceID
+                    ranFunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionAuditRequest->RICsubscriptionAuditRequest-IEs->RICsubscriptionAuditList->RICsubscriptionAudit-ItemIEs->RICsubscriptionAudit-Item->RANfunctionID

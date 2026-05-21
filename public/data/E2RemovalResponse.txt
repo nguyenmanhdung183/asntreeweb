@@ -1,0 +1,15 @@
+E2RemovalResponse : (E2RemovalResponse) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2RemovalResponse
+    protocolIEs : (E2RemovalResponseIEs) 					---- (IE-LIST) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->TransactionID
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2RemovalResponse->E2RemovalResponseIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError

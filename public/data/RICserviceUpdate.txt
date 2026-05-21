@@ -1,0 +1,22 @@
+RICserviceUpdate : (RICserviceUpdate) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICserviceUpdate
+    protocolIEs : (RICserviceUpdate-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->TransactionID
+        RANfunctions-List : (RANfunctions-List) 					---- (SEQUENCE-OF-SINGLECONTAINER) ---- [O] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List
+            RANfunction-ItemIEs : (RANfunction-ItemIEs) 					---- (IE-LIST) ---- [UNK] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs
+                RANfunction-Item : (RANfunction-Item) 					---- (SEQUENCE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item
+                    ranFunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionID
+                    ranFunctionDefinition : (RANfunctionDefinition) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionDefinition
+                    ranFunctionRevision : (RANfunctionRevision) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionRevision
+                    ranFunctionOID : (RANfunctionOID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionOID
+        RANfunctions-List : (RANfunctions-List) 					---- (SEQUENCE-OF-SINGLECONTAINER) ---- [O] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List
+            RANfunction-ItemIEs : (RANfunction-ItemIEs) 					---- (IE-LIST) ---- [UNK] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs
+                RANfunction-Item : (RANfunction-Item) 					---- (SEQUENCE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item
+                    ranFunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionID
+                    ranFunctionDefinition : (RANfunctionDefinition) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionDefinition
+                    ranFunctionRevision : (RANfunctionRevision) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionRevision
+                    ranFunctionOID : (RANfunctionOID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctions-List->RANfunction-ItemIEs->RANfunction-Item->RANfunctionOID
+        RANfunctionsID-List : (RANfunctionsID-List) 					---- (SEQUENCE-OF-SINGLECONTAINER) ---- [O] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctionsID-List
+            RANfunctionID-ItemIEs : (RANfunctionID-ItemIEs) 					---- (IE-LIST) ---- [UNK] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs
+                RANfunctionID-Item : (RANfunctionID-Item) 					---- (SEQUENCE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs->RANfunctionID-Item
+                    ranFunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs->RANfunctionID-Item->RANfunctionID
+                    ranFunctionRevision : (RANfunctionRevision) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceUpdate->RICserviceUpdate-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs->RANfunctionID-Item->RANfunctionRevision

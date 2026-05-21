@@ -1,0 +1,27 @@
+RICsubscriptionModificationRefuse : (RICsubscriptionModificationRefuse) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICsubscriptionModificationRefuse
+    protocolIEs : (RICsubscriptionModificationRefuse-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->RICrequestID->ricInstanceID
+        RANfunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->RANfunctionID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->Cause->CauseServiceLayer->ServiceLayerCause
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: RICsubscriptionModificationRefuse->RICsubscriptionModificationRefuse-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError

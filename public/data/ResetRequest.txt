@@ -1,0 +1,12 @@
+ResetRequest : (ResetRequest) 					---- (SEQUENCE) ---- [UNK] ----PATH: ResetRequest
+    protocolIEs : (ResetRequestIEs) 					---- (IE-LIST) ---- [M] ----PATH: ResetRequest->ResetRequestIEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->TransactionID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: ResetRequest->ResetRequestIEs->Cause->CauseServiceLayer->ServiceLayerCause

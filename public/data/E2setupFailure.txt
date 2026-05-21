@@ -1,0 +1,28 @@
+E2setupFailure : (E2setupFailure) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2setupFailure
+    protocolIEs : (E2setupFailureIEs) 					---- (IE-LIST) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->TransactionID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->Cause->CauseServiceLayer->ServiceLayerCause
+        TimeToWait : (TimeToWait) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->TimeToWait
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError
+        TNLinformation : (TNLinformation) 					---- (SEQUENCE) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->TNLinformation
+            tnlAddress : (tnlAddress) 					---- (BIT STRING) ---- [M] ----PATH: E2setupFailure->E2setupFailureIEs->TNLinformation->tnlAddress
+            tnlPort : (tnlPort) 					---- (BIT STRING) ---- [O] ----PATH: E2setupFailure->E2setupFailureIEs->TNLinformation->tnlPort

@@ -1,0 +1,10 @@
+RICcontrolRequest : (RICcontrolRequest) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICcontrolRequest
+    protocolIEs : (RICcontrolRequest-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICrequestID->ricInstanceID
+        RANfunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RANfunctionID
+        RICcallProcessID : (RICcallProcessID) 					---- (PRIMITIVE) ---- [O] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICcallProcessID
+        RICcontrolHeader : (RICcontrolHeader) 					---- (PRIMITIVE) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICcontrolHeader
+        RICcontrolMessage : (RICcontrolMessage) 					---- (PRIMITIVE) ---- [M] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICcontrolMessage
+        RICcontrolAckRequest : (RICcontrolAckRequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICcontrolRequest->RICcontrolRequest-IEs->RICcontrolAckRequest

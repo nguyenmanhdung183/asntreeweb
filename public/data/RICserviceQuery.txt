@@ -1,0 +1,8 @@
+RICserviceQuery : (RICserviceQuery) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICserviceQuery
+    protocolIEs : (RICserviceQuery-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICserviceQuery->RICserviceQuery-IEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceQuery->RICserviceQuery-IEs->TransactionID
+        RANfunctionsID-List : (RANfunctionsID-List) 					---- (SEQUENCE-OF-SINGLECONTAINER) ---- [O] ----PATH: RICserviceQuery->RICserviceQuery-IEs->RANfunctionsID-List
+            RANfunctionID-ItemIEs : (RANfunctionID-ItemIEs) 					---- (IE-LIST) ---- [UNK] ----PATH: RICserviceQuery->RICserviceQuery-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs
+                RANfunctionID-Item : (RANfunctionID-Item) 					---- (SEQUENCE) ---- [M] ----PATH: RICserviceQuery->RICserviceQuery-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs->RANfunctionID-Item
+                    ranFunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceQuery->RICserviceQuery-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs->RANfunctionID-Item->RANfunctionID
+                    ranFunctionRevision : (RANfunctionRevision) 					---- (PRIMITIVE) ---- [M] ----PATH: RICserviceQuery->RICserviceQuery-IEs->RANfunctionsID-List->RANfunctionID-ItemIEs->RANfunctionID-Item->RANfunctionRevision

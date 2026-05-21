@@ -1,0 +1,6 @@
+RICsubscriptionDeleteResponse : (RICsubscriptionDeleteResponse) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICsubscriptionDeleteResponse
+    protocolIEs : (RICsubscriptionDeleteResponse-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICsubscriptionDeleteResponse->RICsubscriptionDeleteResponse-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICsubscriptionDeleteResponse->RICsubscriptionDeleteResponse-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionDeleteResponse->RICsubscriptionDeleteResponse-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICsubscriptionDeleteResponse->RICsubscriptionDeleteResponse-IEs->RICrequestID->ricInstanceID
+        RANfunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICsubscriptionDeleteResponse->RICsubscriptionDeleteResponse-IEs->RANfunctionID

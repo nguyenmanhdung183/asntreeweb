@@ -1,0 +1,5 @@
+RICassistanceHalt : (RICassistanceHalt) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICassistanceHalt
+    protocolIEs : (RICassistanceHalt-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICassistanceHalt->RICassistanceHalt-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICassistanceHalt->RICassistanceHalt-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICassistanceHalt->RICassistanceHalt-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICassistanceHalt->RICassistanceHalt-IEs->RICrequestID->ricInstanceID

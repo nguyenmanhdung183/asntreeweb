@@ -41,7 +41,7 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 
       <span className="node-name">{displayName}</span>
 
-      <button
+      {/* <button
         className="comment-open"
         type="button"
         onClick={e => {
@@ -50,7 +50,7 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
         }}
       >
         {summary ? '💬' : '✎'}
-      </button>
+      </button> */}
 
       {hasChildren && (
         <span className="node-badge">{node.data.children.length}</span>
@@ -79,6 +79,8 @@ export default function App() {
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
   const [displayMode, setDisplayMode] = useState('varname') // 'varname' or 'type'
+  const [overlayWidth, setOverlayWidth] = useState(220)
+  const [isDraggingOverlay, setIsDraggingOverlay] = useState(false)
   const containerRef = useRef(null)
   const treeRef = useRef(null)
   const panelRef = useRef(null)
@@ -128,6 +130,32 @@ export default function App() {
       document.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isDraggingPanel])
+
+  // Handle overlay drag to resize
+  useEffect(() => {
+    if (!isDraggingOverlay) return
+
+    const handleMouseMove = (e) => {
+      const treeArea = document.querySelector('.tree-area')
+      if (!treeArea) return
+      const rect = treeArea.getBoundingClientRect()
+      const newWidth = rect.right - e.clientX
+      if (newWidth >= 120 && newWidth <= 400) {
+        setOverlayWidth(newWidth)
+      }
+    }
+
+    const handleMouseUp = () => {
+      setIsDraggingOverlay(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDraggingOverlay])
 
 
   const selectedComment = selectedNodeId ? comments[selectedNodeId] : null
@@ -342,7 +370,11 @@ export default function App() {
         <div className="main-content">
           <div className="tree-area">
             {/* Tree area */}
-            <div className="tree-container" ref={containerRef}>
+            <div 
+              className="tree-container" 
+              ref={containerRef}
+              style={{ paddingRight: showAllComments ? `${overlayWidth + 8}px` : '0' }}
+            >
               {loading ? (
                 <div className="loading">
                   <div className="loading-spinner" />
@@ -383,7 +415,10 @@ export default function App() {
 
             {/* Fixed comment overlay layer */}
             {showAllComments && (
-              <div className="comment-overlay">
+              <div 
+                className="comment-overlay"
+                style={{ width: `${overlayWidth}px` }}
+              >
                 {flatNodeList.map(({ node, index }) => {
                   const nodeKey = `${activeFile?.fname}:${node.id}`
                   const comment = comments[nodeKey]
@@ -402,10 +437,26 @@ export default function App() {
                         handleSelectNode(nodeKey, node.name)
                       }}
                     >
+                      <span className={`overlay-level level-${node.level}`}>L{node.level}</span>
+                      <button
+                        className="overlay-comment-btn"
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleSelectNode(nodeKey, node.name)
+                        }}
+                      >
+                        ✎
+                      </button>
                       <div className="comment-overlay-summary">{summary}</div>
                     </div>
                   )
                 })}
+                <div 
+                  className="overlay-resize-handle"
+                  onMouseDown={() => setIsDraggingOverlay(true)}
+                  title="Drag to resize comment overlay"
+                />
               </div>
             )}
 

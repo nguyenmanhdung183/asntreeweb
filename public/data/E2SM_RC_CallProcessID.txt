@@ -1,0 +1,4 @@
+E2SM-RC-CallProcessID : (E2SM-RC-CallProcessID) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2SM-RC-CallProcessID
+    ric-callProcessID-formats : (E2SM-RC-CallProcessID-ric-callProcessID-formats) 					---- (CHOICE) ---- [M] ----PATH: E2SM-RC-CallProcessID->E2SM-RC-CallProcessID-ric-callProcessID-formats
+        callProcessID-Format1 : (E2SM-RC-CallProcessID-Format1) 					---- (SEQUENCE) ---- [M] ----PATH: E2SM-RC-CallProcessID->E2SM-RC-CallProcessID-ric-callProcessID-formats->E2SM-RC-CallProcessID-Format1
+            ric-callProcess-ID : (RAN-CallProcess-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2SM-RC-CallProcessID->E2SM-RC-CallProcessID-ric-callProcessID-formats->E2SM-RC-CallProcessID-Format1->RAN-CallProcess-ID

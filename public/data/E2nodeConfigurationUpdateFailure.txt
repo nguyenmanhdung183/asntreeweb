@@ -1,0 +1,25 @@
+E2nodeConfigurationUpdateFailure : (E2nodeConfigurationUpdateFailure) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2nodeConfigurationUpdateFailure
+    protocolIEs : (E2nodeConfigurationUpdateFailure-IEs) 					---- (IE-LIST) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs
+        TransactionID : (TransactionID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->TransactionID
+        Cause : (Cause) 					---- (CHOICE) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause
+            ricRequest : (CauseRICrequest) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseRICrequest
+            ricService : (CauseRICservice) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseRICservice
+            e2Node : (CauseE2node) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseE2node
+            transport : (CauseTransport) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseTransport
+            protocol : (CauseProtocol) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseProtocol
+            misc : (CauseMisc) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseMisc
+            serviceLayer : (CauseServiceLayer) 					---- (SEQUENCE) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseServiceLayer
+                serviceLayerCause : (ServiceLayerCause) 					---- (PRIMITIVE) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->Cause->CauseServiceLayer->ServiceLayerCause
+        TimeToWait : (TimeToWait) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->TimeToWait
+        CriticalityDiagnostics : (CriticalityDiagnostics) 					---- (SEQUENCE) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics
+            procedureCode : (ProcedureCode) 					---- (PRIMITIVE) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->ProcedureCode
+            triggeringMessage : (TriggeringMessage) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->TriggeringMessage
+            procedureCriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->Criticality
+            ricRequestorID : (RICrequestID) 					---- (SEQUENCE) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->RICrequestID
+                ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->RICrequestID->ricRequestorID
+                ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->RICrequestID->ricInstanceID
+            iEsCriticalityDiagnostics : (CriticalityDiagnostics-IE-List) 					---- (SEQ-OF-ITEM) ---- [O] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List
+                CriticalityDiagnostics-IE-Item : (CriticalityDiagnostics-IE-Item) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item
+                    iECriticality : (Criticality) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->Criticality
+                    iE-ID : (ProtocolIE-ID) 					---- (PRIMITIVE) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->ProtocolIE-ID
+                    typeOfError : (TypeOfError) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [M] ----PATH: E2nodeConfigurationUpdateFailure->E2nodeConfigurationUpdateFailure-IEs->CriticalityDiagnostics->CriticalityDiagnostics-IE-List->CriticalityDiagnostics-IE-Item->TypeOfError

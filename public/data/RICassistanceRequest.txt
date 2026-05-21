@@ -1,0 +1,9 @@
+RICassistanceRequest : (RICassistanceRequest) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICassistanceRequest
+    protocolIEs : (RICassistanceRequest-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICrequestID->ricInstanceID
+        RICassistanceHeader : (RICassistanceHeader) 					---- (PRIMITIVE) ---- [M] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICassistanceHeader
+        RICassistanceMessage : (RICassistanceMessage) 					---- (PRIMITIVE) ---- [M] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICassistanceMessage
+        RICassistanceUpdate : (RICassistanceUpdate) 					---- (PRIMITIVE_OR_EXTERNAL) ---- [O] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICassistanceUpdate
+        RICassistanceUpdateNumber : (RICassistanceUpdateNumber) 					---- (PRIMITIVE) ---- [O] ----PATH: RICassistanceRequest->RICassistanceRequest-IEs->RICassistanceUpdateNumber

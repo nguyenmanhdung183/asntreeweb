@@ -1,0 +1,9 @@
+E2SM-KPM-IndicationHeader : (E2SM-KPM-IndicationHeader) 					---- (SEQUENCE) ---- [UNK] ----PATH: E2SM-KPM-IndicationHeader
+    indicationHeader-formats : (E2SM-KPM-IndicationHeader-indicationHeader-formats) 					---- (CHOICE) ---- [M] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats
+        indicationHeader-Format1 : (E2SM-KPM-IndicationHeader-Format1) 					---- (SEQUENCE) ---- [M] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1
+            colletStartTime : (TimeStamp) 					---- (PRIMITIVE) ---- [M] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1->TimeStamp
+            fileFormatversion : (fileFormatversion) 					---- (PrintableString) ---- [O] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1->fileFormatversion
+            senderName : (senderName) 					---- (PrintableString) ---- [O] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1->senderName
+            senderType : (senderType) 					---- (PrintableString) ---- [O] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1->senderType
+            vendorName : (vendorName) 					---- (PrintableString) ---- [O] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1->vendorName
+            jobID : (JobID) 					---- (PRIMITIVE) ---- [O] ----PATH: E2SM-KPM-IndicationHeader->E2SM-KPM-IndicationHeader-indicationHeader-formats->E2SM-KPM-IndicationHeader-Format1->JobID

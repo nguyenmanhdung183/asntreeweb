@@ -1,0 +1,8 @@
+RICcontrolAcknowledge : (RICcontrolAcknowledge) 					---- (SEQUENCE) ---- [UNK] ----PATH: RICcontrolAcknowledge
+    protocolIEs : (RICcontrolAcknowledge-IEs) 					---- (IE-LIST) ---- [M] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs
+        RICrequestID : (RICrequestID) 					---- (SEQUENCE) ---- [M] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs->RICrequestID
+            ricRequestorID : (ricRequestorID) 					---- (INTEGER) ---- [M] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs->RICrequestID->ricRequestorID
+            ricInstanceID : (ricInstanceID) 					---- (INTEGER) ---- [M] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs->RICrequestID->ricInstanceID
+        RANfunctionID : (RANfunctionID) 					---- (PRIMITIVE) ---- [M] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs->RANfunctionID
+        RICcallProcessID : (RICcallProcessID) 					---- (PRIMITIVE) ---- [O] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs->RICcallProcessID
+        RICcontrolOutcome : (RICcontrolOutcome) 					---- (PRIMITIVE) ---- [O] ----PATH: RICcontrolAcknowledge->RICcontrolAcknowledge-IEs->RICcontrolOutcome
