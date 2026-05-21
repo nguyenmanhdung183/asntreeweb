@@ -674,6 +674,16 @@
 .tree-node:hover { background: var(--hover); }
 .tree-node.selected { background: var(--selected); }
 
+
+.tree-node.matched { background: rgba(124,252,0,0.06); }
+.tree-node.matched .node-name { color: #052b00; font-weight: 700; }
+.tree-node.matched-name { background: rgba(124,252,0,0.04); }
+.tree-node.matched-comment { border-left: 4px solid rgba(124,252,0,0.7); }
+.tree-node.matched-both { background: rgba(124,252,0,0.18); color: #042b00; }
+
+.comment-overlay-item.overlay-selected { background: rgba(124,252,0,0.12); border-left: 3px solid #7CFC00; }
+.comment-overlay-item.overlay-matched { background: rgba(124,252,0,0.06); }
+
 .tree-node.folder { cursor: pointer; }
 
 .indent-guide {

@@ -8,7 +8,7 @@ const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
 const MANIFEST_URL = './data/manifest.json'
 
 // ─── Node renderer ────────────────────────────────────────────────────────────
-function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode, rowIndex }) {
+function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode, rowIndex, nodeKey, isMatched, matchedName, matchedComment }) {
   const isLeaf = !node.data.children?.length
   const hasChildren = !isLeaf
   const summary = comment?.summary?.trim()
@@ -21,9 +21,10 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 
   return (
     <div
+      id={`node-${String(nodeKey).replace(/[:\/\s]/g, '-')}`}
       ref={dragHandle}
       style={style}
-      className={`tree-node level-${node.level} ${selected ? 'selected' : ''} ${isLeaf ? 'leaf' : 'folder'}`}
+      className={`tree-node level-${node.level} ${selected ? 'selected' : ''} ${isLeaf ? 'leaf' : 'folder'} ${isMatched ? 'matched' : ''} ${matchedName ? 'matched-name' : ''} ${matchedComment ? 'matched-comment' : ''} ${matchedName && matchedComment ? 'matched-both' : ''}`}
       onClick={() => {
         if (hasChildren) node.toggle()
         onSelect(node.data.id, node.data.name)
@@ -114,7 +115,7 @@ function normalizeString(value) {
     .trim()
 }
 
-// ─── Search highlight ─────────────────────────────────────────────────────────
+// ─── Search highlight (default) ───────────────────────────────────────────────
 function searchMatch(node, term) {
   const normalizedNode = normalizeString(node.data.name)
   const normalizedTerm = normalizeString(term)
@@ -387,6 +388,28 @@ export default function App() {
     return result
   }, [activeTree])
 
+  // Tree search match that supports name/type/structType and comment (summary+main)
+  const treeSearchMatch = useCallback((node, term) => {
+    const parts = String(term || '').split('||')
+    const nameTerm = normalizeString(parts[0] || '').trim()
+    const commentTerm = normalizeString(parts[1] || '').trim()
+
+    if (commentTerm && activeFile) {
+      const nodeKey = `${activeFile.fname}:${node.data.id}`
+      const c = comments[nodeKey]
+      const text = `${c?.summary ?? ''} ${c?.main ?? ''}`
+      if (normalizeString(text).includes(commentTerm)) return true
+    }
+
+    if (nameTerm) {
+      if (normalizeString(node.data.name).includes(nameTerm)) return true
+      if (normalizeString(node.data.type || '').includes(nameTerm)) return true
+      if (normalizeString(node.data.structType || '').includes(nameTerm)) return true
+    }
+
+    return false
+  }, [comments, activeFile])
+
   // Matches for search navigation (name or comment search)
   const [matchCursor, setMatchCursor] = useState(0)
   const matchedNodes = useMemo(() => {
@@ -407,6 +430,31 @@ export default function App() {
     return results
   }, [activeFile, flatNodeList, comments, search, searchComment])
 
+  // explicit sets for highlighting: name matches and comment matches
+  const matchedNameSet = useMemo(() => {
+    const s = new Set()
+    const term = normalizeString(search || '').trim()
+    if (!term) return s
+    for (const { node } of flatNodeList) {
+      const key = `${activeFile?.fname}:${node.id}`
+      if (normalizeString(node.name).includes(term) || normalizeString(node.type || '').includes(term) || normalizeString(node.structType || '').includes(term)) s.add(key)
+    }
+    return s
+  }, [flatNodeList, search, activeFile])
+
+  const matchedCommentSet = useMemo(() => {
+    const s = new Set()
+    const term = normalizeString(searchComment || '').trim()
+    if (!term) return s
+    for (const { node } of flatNodeList) {
+      const key = `${activeFile?.fname}:${node.id}`
+      const c = comments[key]
+      const text = `${c?.summary ?? ''} ${c?.main ?? ''}`
+      if (normalizeString(text).includes(term)) s.add(key)
+    }
+    return s
+  }, [flatNodeList, searchComment, comments, activeFile])
+
   const goToMatch = (idx) => {
     if (!matchedNodes.length) return
     const i = ((idx % matchedNodes.length) + matchedNodes.length) % matchedNodes.length
@@ -414,6 +462,28 @@ export default function App() {
     const nodeKey = matchedNodes[i]
     setSelectedNodeId(nodeKey)
     setSelectedNodeName(comments[nodeKey]?.summary ?? '')
+    // scroll tree to reveal node
+    setTimeout(() => {
+      try {
+        const id = `node-${String(nodeKey).replace(/[:\/\s]/g, '-')}`
+        const el = document.getElementById(id)
+        if (el) {
+          // find the scrollable tree container
+          const container = document.querySelector('.tree-container')
+          if (container) {
+            const rect = el.getBoundingClientRect()
+            const crect = container.getBoundingClientRect()
+            // compute offset relative to container and scroll
+            const offset = rect.top - crect.top - (crect.height / 2) + (rect.height / 2)
+            container.scrollBy({ top: offset, behavior: 'smooth' })
+          } else {
+            el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 20)
   }
 
   const nextMatch = () => goToMatch(matchCursor + 1)
@@ -578,18 +648,25 @@ export default function App() {
                   height={treeHeight}
                   indent={28}
                   rowHeight={28}
-                  searchTerm={search}
-                  searchMatch={searchMatch}
+                  searchTerm={((search || '').trim() || (searchComment || '').trim()) ? `${search}||${searchComment}` : ''}
+                  searchMatch={treeSearchMatch}
                   disableDrag
                   disableDrop
                 >
                   {props => {
                     const nodeKey = `${activeFile?.fname}:${props.node.data.id}`
                     const rowIndex = flatNodeList.findIndex(x => x.node.id === props.node.data.id)
+                    const matchedName = matchedNameSet.has(nodeKey)
+                    const matchedComment = matchedCommentSet.has(nodeKey)
+                    const isMatched = matchedName || matchedComment || treeSearchMatch(props.node, `${search}||${searchComment}`)
                     return (
                       <Node
                         {...props}
+                        nodeKey={nodeKey}
                         rowIndex={rowIndex}
+                        isMatched={isMatched}
+                        matchedName={matchedName}
+                        matchedComment={matchedComment}
                         selected={selectedNodeId === nodeKey}
                         comment={comments[nodeKey]}
                         showAllComments={showAllComments}
@@ -618,10 +695,11 @@ export default function App() {
                   const top = index * 28 + 8 // rowHeight (28) + top padding
                   
                   return (
-                    <div 
-                      key={nodeKey} 
-                      className="comment-overlay-item"
-                      style={{ top: `${top}px` }}
+                      <div 
+                        key={nodeKey} 
+                        data-node-key={nodeKey}
+                        className={`comment-overlay-item ${selectedNodeId === nodeKey ? 'overlay-selected' : ''} ${matchedCommentSet.has(nodeKey) ? 'overlay-matched' : ''}`}
+                        style={{ top: `${top}px` }}
                       onClick={e => {
                         e.stopPropagation()
                         handleSelectNode(nodeKey, node.name)
