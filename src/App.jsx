@@ -40,6 +40,9 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
       </span>
 
       <span className="node-name">{displayName}</span>
+          {String(node.data?.structType || node.structType || '').toUpperCase() === 'RECURSIVE' && (
+            <span className="node-recursive-badge">RECUR</span>
+          )}
 
       {/* <button
         className="comment-open"
@@ -541,12 +544,13 @@ export default function App() {
                 className="comment-overlay"
                 style={{ width: `${overlayWidth}px` }}
               >
-                {flatNodeList.map(({ node, index }) => {
+                {flatNodeList.map(({ node, index, depth }) => {
                   const nodeKey = `${activeFile?.fname}:${node.id}`
                   const comment = comments[nodeKey]
                   const summary = comment?.summary?.trim()
                   if (!summary) return null
-                  
+                  const structTypeValue = String(node.data?.structType || node.structType || '')
+                  const isRecursive = structTypeValue.toUpperCase() === 'RECURSIVE'
                   const top = index * 28 + 8 // rowHeight (28) + top padding
                   
                   return (
@@ -559,7 +563,9 @@ export default function App() {
                         handleSelectNode(nodeKey, node.name)
                       }}
                     >
-                      <span className={`overlay-level level-${node.level}`}>L{node.level}</span>
+                      <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${depth}`}>
+                        {isRecursive ? 'RECUR' : `L${depth}`}
+                      </span>
                       <button
                         className="overlay-comment-btn"
                         type="button"
