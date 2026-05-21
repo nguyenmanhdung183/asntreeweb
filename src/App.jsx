@@ -238,6 +238,31 @@ export default function App() {
 
 
   const selectedComment = selectedNodeId ? comments[selectedNodeId] : null
+  const [copyMessage, setCopyMessage] = useState('')
+  const copyTimeoutRef = useRef(null)
+
+  const copyText = (text, label) => {
+    if (!text) return
+    const doNotify = () => {
+      setCopyMessage(label ? `${label} copied` : 'Copied')
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopyMessage(''), 1400)
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(doNotify).catch(() => doNotify())
+    } else {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch (e) {}
+      ta.remove()
+      doNotify()
+    }
+  }
 
   // Get the currently selected node for its metadata
   const getSelectedNodeMetadata = useCallback(() => {
@@ -491,6 +516,9 @@ export default function App() {
 
   return (
     <div className="app">
+      {copyMessage && (
+        <div className="copy-toast" role="status">{copyMessage}</div>
+      )}
       {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -498,7 +526,11 @@ export default function App() {
             <span className="logo-icon">⬡</span>
             <span className="logo-text">ASN<span className="logo-accent">Tree</span></span>
           </div>
-          <div className="logo-sub">Protocol Explorer  dungnm26</div>
+          {/* <div className="logo-sub">Protocol Explorer  dungnm26</div> */}
+        <div className="logo-sub">
+          Protocol Explorer
+          <span className="badge-user">dungnm26</span>
+        </div>
         </div>
 
         <div className="sidebar-section-label">FILES</div>
@@ -779,25 +811,47 @@ export default function App() {
 
             {selectedNodeId ? (
               <div className="panel-body">
-                <div className="comment-node-name">{selectedNodeName}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <div className="comment-node-name" style={{ marginBottom: 0 }}>{selectedNodeName}</div>
+                  <button
+                    className="btn-copy icon-only"
+                    type="button"
+                    onClick={() => copyText(selectedNodeName || '')}
+                    title="Copy node name"
+                  >
+                    📋
+                  </button>
+                </div>
 
                 {mergedComment?.path && (
                   <>
                     <div className="meta-field">
                       <label>Type</label>
-                      <div className="meta-value">{mergedComment.type || '—'}</div>
+                      <div className="meta-row">
+                        <div className="meta-value">{mergedComment.type || '—'}</div>
+                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.type || '')} title="Copy type">📋</button>
+                      </div>
                     </div>
                     <div className="meta-field">
                       <label>Struct Type</label>
-                      <div className="meta-value">{mergedComment.structType || '—'}</div>
+                      <div className="meta-row">
+                        <div className="meta-value">{mergedComment.structType || '—'}</div>
+                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.structType || '')} title="Copy struct type">📋</button>
+                      </div>
                     </div>
                     <div className="meta-field">
                       <label>Presence</label>
-                      <div className="meta-value">{mergedComment.presence || '—'}</div>
+                      <div className="meta-row">
+                        <div className="meta-value">{mergedComment.presence || '—'}</div>
+                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.presence || '')} title="Copy presence">📋</button>
+                      </div>
                     </div>
                     <div className="meta-field">
                       <label>Path</label>
-                      <div className="meta-value meta-path">{mergedComment.path || '—'}</div>
+                      <div className="meta-row">
+                        <div className="meta-value meta-path">{mergedComment.path || '—'}</div>
+                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.path || '', 'Path')} title="Copy path">📋</button>
+                      </div>
                     </div>
                     <hr style={{ margin: '12px 0', borderColor: 'var(--border)' }} />
                   </>
@@ -805,19 +859,43 @@ export default function App() {
 
                 <div className="comment-field">
                   <label>Summary</label>
-                  <input
-                    value={selectedComment?.summary || ''}
-                    onChange={e => updateCommentField(selectedNodeId, 'summary', e.target.value)}
-                    placeholder="Short summary shown on the line"
-                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      value={selectedComment?.summary || ''}
+                      onChange={e => updateCommentField(selectedNodeId, 'summary', e.target.value)}
+                      placeholder="Short summary shown on the line"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      className="btn-copy"
+                      type="button"
+                      onClick={() => copyText(selectedComment?.summary || '')}
+                      title="Copy summary"
+                    >
+                      📋
+                    </button>
+                  </div>
                 </div>
                 <div className="comment-field">
                   <label>Main content</label>
-                  <textarea
-                    value={selectedComment?.main || ''}
-                    onChange={e => updateCommentField(selectedNodeId, 'main', e.target.value)}
-                    placeholder="Detailed comment content"
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <textarea
+                      value={selectedComment?.main || ''}
+                      onChange={e => updateCommentField(selectedNodeId, 'main', e.target.value)}
+                      placeholder="Detailed comment content"
+                      style={{ minHeight: 160, marginBottom: 6 }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        className="btn-copy"
+                        type="button"
+                        onClick={() => copyText(selectedComment?.main || '')}
+                        title="Copy main content"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
