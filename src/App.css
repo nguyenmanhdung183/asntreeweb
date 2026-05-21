@@ -97,6 +97,34 @@
 .file-icon { font-size: 12px; flex-shrink: 0; }
 .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* File search input */
+.file-search-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 10px;
+  gap: 6px;
+  margin: 6px 8px 8px 8px;
+  transition: border-color 0.15s;
+}
+
+.file-search-wrap:focus-within { border-color: var(--accent); }
+
+.file-search-input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 0;
+  width: 100%;
+}
+
+.file-search-input::placeholder { color: var(--muted); }
+
 .sidebar-footer {
   padding: 12px 16px;
   border-top: 1px solid var(--border);

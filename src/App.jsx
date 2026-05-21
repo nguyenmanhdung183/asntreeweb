@@ -59,9 +59,23 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
   )
 }
 
+// ─── Normalize string for search (remove _, space, lowercase) ─────────────────
+function normalizeString(str) {
+  return str.replace(/[_\s]/g, '').toLowerCase()
+}
+
 // ─── Search highlight ─────────────────────────────────────────────────────────
 function searchMatch(node, term) {
-  return node.data.name.toLowerCase().includes(term.toLowerCase())
+  const normalizedNode = normalizeString(node.data.name)
+  const normalizedTerm = normalizeString(term)
+  return normalizedNode.includes(normalizedTerm)
+}
+
+// ─── File search match ────────────────────────────────────────────────────────
+function fileSearchMatch(fileName, term) {
+  const normalizedFile = normalizeString(fileName)
+  const normalizedTerm = normalizeString(term)
+  return normalizedFile.includes(normalizedTerm)
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
@@ -69,6 +83,7 @@ export default function App() {
   const [files, setFiles] = useState([])          // { name, tree }[]
   const [activeFile, setActiveFile] = useState(null)
   const [search, setSearch] = useState('')
+  const [fileSearch, setFileSearch] = useState('')  // File search input
   const [loading, setLoading] = useState(true)
   const [treeHeight, setTreeHeight] = useState(600)
   const [totalNodes, setTotalNodes] = useState(0)
@@ -250,6 +265,12 @@ export default function App() {
 
   const activeTree = useMemo(() => activeFile?.tree ?? [], [activeFile])
 
+  // Filter files based on file search
+  const filteredFiles = useMemo(() => {
+    if (!fileSearch.trim()) return files
+    return files.filter(f => fileSearchMatch(f.name, fileSearch))
+  }, [files, fileSearch])
+
   // Build a flat list of all nodes with their tree indices for positioning
   const flatNodeList = useMemo(() => {
     const result = []
@@ -276,8 +297,22 @@ export default function App() {
         </div>
 
         <div className="sidebar-section-label">FILES</div>
+        
+        <div className="file-search-wrap">
+          <span className="search-icon">⌕</span>
+          <input
+            className="file-search-input"
+            placeholder="Search files..."
+            value={fileSearch}
+            onChange={e => setFileSearch(e.target.value)}
+          />
+          {fileSearch && (
+            <button className="search-clear" onClick={() => setFileSearch('')}>✕</button>
+          )}
+        </div>
+        
         <nav className="file-list">
-          {files.map(f => (
+          {filteredFiles.map(f => (
             <button
               key={f.fname}
               className={`file-item ${activeFile?.fname === f.fname ? 'active' : ''}`}
@@ -301,7 +336,7 @@ export default function App() {
           </div>
           <div className="stat-row">
             <span className="stat-label">Files</span>
-            <span className="stat-value">{files.length}</span>
+            <span className="stat-value">{fileSearch ? `${filteredFiles.length}/${files.length}` : files.length}</span>
           </div>
         </div>
       </aside>
