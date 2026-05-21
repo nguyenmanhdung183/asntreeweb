@@ -132,6 +132,7 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  position: relative;
 }
 
 .comment-panel {
@@ -283,54 +284,50 @@
   color: #60a5fa;
 }
 
-.comment-preview {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 24px;
-  width: auto;
-  min-width: 100px;
-  max-width: 250px;
-  background: rgba(79,158,255,0.12);
-  border: 1px solid rgba(79,158,255,0.24);
-  border-radius: 12px;
-  padding: 2px 10px;
-  margin-left: auto;
-  margin-right: 6px;
-  overflow: hidden;
-  flex-shrink: 0;
+/* Fixed comment overlay column */
+.comment-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 220px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.comment-preview-box {
+.comment-overlay-item {
   position: absolute;
   right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: inline-flex;
+  width: 200px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.comment-overlay-summary {
+  display: flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  width: auto;
-  min-width: 100px;
-  max-width: 200px;
+  width: 100%;
+  height: 100%;
   background: rgba(79,158,255,0.14);
   border: 1px solid rgba(79,158,255,0.28);
   border-radius: 12px;
   padding: 2px 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  pointer-events: none;
-}
-
-.comment-preview-box .comment-preview-summary {
-  display: block;
   font-size: 11px;
   font-weight: 600;
   color: var(--text);
-  line-height: 1.2;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.comment-overlay-item:hover .comment-overlay-summary {
+  background: rgba(79,158,255,0.24);
+  border-color: rgba(79,158,255,0.48);
 }
 
 .tree-node .indent-guide {
@@ -496,6 +493,7 @@
   overflow: auto;
   min-width: 0;
   padding: 8px 0;
+  padding-right: 228px; /* Space for fixed comment overlay */
 }
 
 /* react-arborist overrides */

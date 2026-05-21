@@ -52,17 +52,6 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
         {summary ? '💬' : '✎'}
       </button>
 
-      {showAllComments && summary && (
-        <div
-          className="comment-preview-box"
-          onClick={e => e.stopPropagation()}
-        >
-          <span className="comment-preview-summary">
-            {summary}
-          </span>
-        </div>
-      )}
-
       {hasChildren && (
         <span className="node-badge">{node.data.children.length}</span>
       )}
@@ -233,6 +222,19 @@ export default function App() {
 
   const activeTree = useMemo(() => activeFile?.tree ?? [], [activeFile])
 
+  // Build a flat list of all nodes with their tree indices for positioning
+  const flatNodeList = useMemo(() => {
+    const result = []
+    function walk(nodes, depth = 0) {
+      for (const node of nodes) {
+        result.push({ node, depth, index: result.length })
+        if (node.children?.length) walk(node.children, depth + 1)
+      }
+    }
+    walk(activeTree)
+    return result
+  }, [activeTree])
+
   return (
     <div className="app">
       {/* ── Sidebar ── */}
@@ -378,6 +380,34 @@ export default function App() {
                 </Tree>
               )}
             </div>
+
+            {/* Fixed comment overlay layer */}
+            {showAllComments && (
+              <div className="comment-overlay">
+                {flatNodeList.map(({ node, index }) => {
+                  const nodeKey = `${activeFile?.fname}:${node.id}`
+                  const comment = comments[nodeKey]
+                  const summary = comment?.summary?.trim()
+                  if (!summary) return null
+                  
+                  const top = index * 28 + 8 // rowHeight (28) + top padding
+                  
+                  return (
+                    <div 
+                      key={nodeKey} 
+                      className="comment-overlay-item"
+                      style={{ top: `${top}px` }}
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleSelectNode(nodeKey, node.name)
+                      }}
+                    >
+                      <div className="comment-overlay-summary">{summary}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Status bar */}
             <div className="statusbar">
