@@ -150,6 +150,47 @@ async function clearCommentsFromAPI() {
   return true
 }
 
+// ─── Note storage helpers ───────────────────────────────────────────────────
+function loadStoredNotes() {
+  try {
+    const stored = localStorage.getItem('asn_notes')
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    if (!Array.isArray(parsed)) return []
+    return parsed.map(note => ({
+      ...note,
+      type: 'note',
+      content: note.content ?? '',
+    }))
+  } catch {
+    return []
+  }
+}
+
+function saveNotesToStorage(notes) {
+  try {
+    localStorage.setItem('asn_notes', JSON.stringify(notes))
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function createNoteFile(name) {
+  const safeName = String(name || 'Untitled')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim() || 'Untitled'
+  const id = `${Date.now()}`
+  return {
+    id,
+    name: safeName,
+    fname: `${safeName.replace(/\s+/g, '_')}-${id}.txt`,
+    type: 'note',
+    content: '',
+  }
+}
+
 // ─── Normalization helpers ───────────────────────────────────────────────────
 function normalizeString(value) {
   return String(value || '')
@@ -191,7 +232,8 @@ export default function App() {
   const [compactComments, setCompactComments] = useState(true)
   const [fileViewMode, setFileViewMode] = useState('tree')
   const [fileListTab, setFileListTab] = useState('txt')
-  const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '' })
+  const [notes, setNotes] = useState([])
+  const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '', notes: '' })
   const [pdfSearch, setPdfSearch] = useState('')
   const [pdfPage, setPdfPage] = useState(1)
   const [pdfLine, setPdfLine] = useState('')
@@ -439,6 +481,8 @@ export default function App() {
     async function loadFiles() {
       setLoading(true)
       const loaded = []
+      const storedNotes = loadStoredNotes()
+      setNotes(storedNotes)
 
       // try to read manifest.json first, fall back to hardcoded list
       let fileList = FALLBACK_FILE_LIST
@@ -475,13 +519,20 @@ export default function App() {
       }
 
       setFiles(loaded)
-      if (loaded.length) {
+      if (loaded.length || storedNotes.length) {
         let preferred
-        if (fileListTab && lastSelectedFiles[fileListTab]) {
+        if (fileListTab === 'notes' && lastSelectedFiles.notes) {
+          preferred = storedNotes.find(f => f.fname === lastSelectedFiles.notes)
+        }
+        if (!preferred && (fileListTab === 'txt' || fileListTab === 'pdf')) {
           preferred = loaded.find(f => f.type === fileListTab && f.fname === lastSelectedFiles[fileListTab])
         }
-        if (!preferred) preferred = loaded.find(f => f.type === fileListTab)
-        setActiveFile(preferred || loaded[0])
+        if (!preferred) {
+          if (fileListTab === 'notes') preferred = storedNotes[0]
+          else preferred = loaded.find(f => f.type === fileListTab)
+        }
+        if (!preferred) preferred = loaded[0] || storedNotes[0]
+        setActiveFile(preferred)
       }
       setLoading(false)
       
@@ -614,6 +665,72 @@ export default function App() {
     setPdfHistoryIndex(-1)
   }
 
+  const createNewNote = () => {
+    const name = window.prompt('New note name', `Note ${notes.length + 1}`)
+    if (!name || !name.trim()) return
+    const note = createNoteFile(name)
+    const nextNotes = [...notes, note]
+    setNotes(nextNotes)
+    saveNotesToStorage(nextNotes)
+    setFileListTab('notes')
+    setActiveFile(note)
+    setSearch('')
+    setSearchComment('')
+    setSelectedNodeId(null)
+    setSelectedNodeName('')
+    updateLastSelectedFile(note)
+  }
+
+  const renameNote = (note) => {
+    if (!note) return
+    const newName = window.prompt('Rename note', note.name)
+    if (!newName || !newName.trim() || newName.trim() === note.name) return
+    const updatedNote = {
+      ...note,
+      name: newName.trim(),
+      fname: `${newName.trim().replace(/\s+/g, '_')}-${note.id}.txt`,
+    }
+    setNotes(prev => {
+      const next = prev.map(n => n.id === note.id ? updatedNote : n)
+      saveNotesToStorage(next)
+      return next
+    })
+    if (activeFile?.type === 'note' && activeFile.id === note.id) {
+      setActiveFile(updatedNote)
+    }
+    updateLastSelectedFile(updatedNote)
+  }
+
+  const deleteNote = (note) => {
+    if (!note) return
+    if (!window.confirm(`Delete note "${note.name}"? This cannot be undone.`)) return
+    setNotes(prev => {
+      const next = prev.filter(n => n.id !== note.id)
+      saveNotesToStorage(next)
+      return next
+    })
+    if (activeFile?.type === 'note' && activeFile.id === note.id) {
+      const nextNote = notes.find(n => n.id !== note.id)
+      if (nextNote) {
+        setActiveFile(nextNote)
+        updateLastSelectedFile(nextNote)
+      } else {
+        const nextFile = files.find(f => f.type === 'txt') || files[0] || null
+        setActiveFile(nextFile)
+      }
+    }
+  }
+
+  const updateNoteContent = (content) => {
+    if (!activeFile || activeFile.type !== 'note') return
+    setNotes(prev => {
+      const next = prev.map(note => note.id === activeFile.id ? { ...note, content } : note)
+      saveNotesToStorage(next)
+      return next
+    })
+    setActiveFile(prev => prev && prev.type === 'note' ? { ...prev, content } : prev)
+  }
+
   const handleExpandAll = () => treeRef.current?.openAll()
   const handleCollapseAll = () => treeRef.current?.closeAll()
 
@@ -666,16 +783,26 @@ export default function App() {
 
   // Filter files based on file search
   const filteredFiles = useMemo(() => {
+    if (fileListTab === 'notes') {
+      const list = notes
+      if (!fileSearch.trim()) return list
+      return list.filter(f => fileSearchMatch(f.name, fileSearch))
+    }
     const list = files.filter(f => f.type === fileListTab)
     if (!fileSearch.trim()) return list
     return list.filter(f => fileSearchMatch(f.name, fileSearch))
-  }, [files, fileSearch, fileListTab, fileListTab])
+  }, [files, notes, fileSearch, fileListTab])
 
   const handleFileListTabChange = (tab) => {
-    if (tab !== 'txt' && tab !== 'pdf') return
+    if (tab !== 'txt' && tab !== 'pdf' && tab !== 'notes') return
     setFileListTab(tab)
     if (activeFile?.type !== tab) {
-      const preferred = files.find(f => f.type === tab && f.fname === lastSelectedFiles[tab]) || files.find(f => f.type === tab)
+      let preferred = null
+      if (tab === 'notes') {
+        preferred = notes.find(f => f.fname === lastSelectedFiles.notes) || notes[0]
+      } else {
+        preferred = files.find(f => f.type === tab && f.fname === lastSelectedFiles[tab]) || files.find(f => f.type === tab)
+      }
       if (preferred) {
         setActiveFile(preferred)
         setSearch('')
@@ -864,7 +991,22 @@ export default function App() {
           >
             PDF files
           </button>
+          <button
+            type="button"
+            className={`file-filter-tab ${fileListTab === 'notes' ? 'active' : ''}`}
+            onClick={() => handleFileListTabChange('notes')}
+          >
+            Notes
+          </button>
         </div>
+
+        {fileListTab === 'notes' && (
+          <div className="sidebar-actions">
+            <button className="btn-copy" type="button" onClick={createNewNote}>
+              + New note
+            </button>
+          </div>
+        )}
 
         <div className="file-search-wrap">
           <span className="search-icon">⌕</span>
@@ -891,7 +1033,9 @@ export default function App() {
                 setSelectedNodeName('')
               }}
             >
-              <span className="file-icon">{f.type === 'pdf' ? '📕' : '📄'}</span>
+              <span className="file-icon">
+                {f.type === 'pdf' ? '📕' : f.type === 'note' ? '📝' : '📄'}
+              </span>
               <span className="file-name">{f.name}</span>
             </button>
           ))}
@@ -926,7 +1070,7 @@ export default function App() {
           </div>
           <div className="stat-row">
             <span className="stat-label">Files</span>
-            <span className="stat-value">{fileSearch ? `${filteredFiles.length}/${files.length}` : files.length}</span>
+            <span className="stat-value">{fileSearch ? `${filteredFiles.length}/${fileListTab === 'notes' ? notes.length : files.length}` : (fileListTab === 'notes' ? notes.length : files.length)}</span>
           </div>
         </div>
       </aside>
@@ -940,7 +1084,7 @@ export default function App() {
             <span className="breadcrumb">
               {activeFile ? (
                 <>
-                  <span className="bc-root">data</span>
+                  <span className="bc-root">{activeFile.type === 'pdf' ? 'pdf' : activeFile.type === 'note' ? 'notes' : 'data'}</span>
                   <span className="bc-sep">/</span>
                   <span className="bc-file">{activeFile.fname}</span>
                 </>
@@ -953,9 +1097,9 @@ export default function App() {
               <span className="search-icon">⌕</span>
               <input
                 className="search-input"
-                placeholder={activeFile?.type === 'pdf' ? 'PDF selected – tree search disabled' : 'Search nodes...'}
+                placeholder={activeFile?.type === 'pdf' ? 'PDF selected – tree search disabled' : activeFile?.type === 'note' ? 'Note selected – search disabled' : 'Search nodes...'}
                 value={search}
-                disabled={activeFile?.type === 'pdf'}
+                disabled={activeFile?.type === 'pdf' || activeFile?.type === 'note'}
                 onChange={e => setSearch(e.target.value)}
               />
               {search && (
@@ -966,9 +1110,9 @@ export default function App() {
               <span className="search-icon">💬</span>
               <input
                 className="search-input"
-                placeholder={activeFile?.type === 'pdf' ? 'PDF selected – comment search disabled' : 'Search comments...'}
+                placeholder={activeFile?.type === 'pdf' || activeFile?.type === 'note' ? 'Comment search disabled' : 'Search comments...'}
                 value={searchComment}
-                disabled={activeFile?.type === 'pdf'}
+                disabled={activeFile?.type === 'pdf' || activeFile?.type === 'note'}
                 onChange={e => setSearchComment(e.target.value)}
               />
               {searchComment && (
@@ -1084,6 +1228,30 @@ export default function App() {
                 ) : (
                   <div className="empty">No tree data available for this PDF.</div>
                 )
+              ) : activeFile.type === 'note' ? (
+                <div className="note-editor-wrap">
+                  <div className="note-editor-header">
+                    <div>
+                      <div className="note-editor-name">{activeFile.name}</div>
+                      <div className="note-editor-sub">Note file: {activeFile.fname}</div>
+                    </div>
+                    <div className="note-editor-actions">
+                      <button className="btn-copy" type="button" onClick={() => renameNote(activeFile)}>
+                        Rename
+                      </button>
+                      <button className="btn-copy" type="button" onClick={() => deleteNote(activeFile)}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    className="note-editor"
+                    autoFocus
+                    value={activeFile.content || ''}
+                    onChange={e => updateNoteContent(e.target.value)}
+                    placeholder="Viết ghi chú ở đây..."
+                  />
+                </div>
               ) : (
                 <Tree
                   ref={treeRef}
@@ -1125,7 +1293,7 @@ export default function App() {
             </div>
 
             {/* Fixed comment overlay layer */}
-            {showAllComments && activeFile?.type !== 'pdf' && (
+            {showAllComments && activeFile?.type === 'txt' && (
               <div 
                 className="comment-overlay"
                 style={{ width: `${overlayWidth}px` }}

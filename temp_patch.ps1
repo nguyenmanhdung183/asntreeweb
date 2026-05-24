@@ -1,0 +1,9 @@
+﻿$path = 'w:\asntreeweb_cloud\src\App.jsx'
+$text = Get-Content $path -Raw
+$old = "                  <div class=\"empty\">No tree data available for this PDF.</div>`r`n                )`r`n              ) : (`r`n                <Tree"
+$new = "                  <div class=\"empty\">No tree data available for this PDF.</div>`r`n                ) : activeFile.type === 'note' ? (`r`n                  <div class=\"note-editor-wrap\">`r`n                    <div class=\"note-editor-header\">`r`n                      <div>`r`n                        <div class=\"note-editor-name\">{activeFile.name}</div>`r`n                        <div class=\"note-editor-sub\">Note file: {activeFile.fname}</div>`r`n                      </div>`r`n                      <div class=\"note-editor-actions\">`r`n                        <button class=\"btn-copy\" type=\"button\" onClick={() => renameNote(activeFile)}>`r`n                          Rename`r`n                        </button>`r`n                        <button class=\"btn-copy\" type=\"button\" onClick={() => deleteNote(activeFile)}>`r`n                          Delete`r`n                        </button>`r`n                      </div>`r`n                    </div>`r`n                    <textarea`r`n                      className=\"note-editor\"`r`n                      value={activeFile.content || ''}`r`n                      onChange={e => updateNoteContent(e.target.value)}`r`n                      placeholder=\"Write notes here...\"`r`n                    />`r`n                  </div>`r`n                ) : (`r`n                <Tree"
+if (-not $text.Contains($old)) { Write-Error 'Old text not found'; exit 1 }
+$next = $text.Replace($old, $new)
+if ($next -eq $text) { Write-Error 'Text replacement failed'; exit 1 }
+Set-Content $path -Value $next -Encoding utf8
+Write-Output 'patched'
