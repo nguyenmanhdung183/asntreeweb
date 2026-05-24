@@ -161,6 +161,15 @@ export default function App() {
   const handleSelectNode = (nodeId, nodeName) => {
     setSelectedNodeId(nodeId)
     setSelectedNodeName(nodeName)
+
+    const rawId = String(nodeId).split(':')[1]
+    if (treeRef.current && rawId) {
+      try {
+        treeRef.current.scrollTo(rawId, 'center')
+      } catch (e) {
+        // fallback if tree API isn't available yet
+      }
+    }
   }
 
   const updateCommentField = (nodeId, field, value) => {
@@ -707,13 +716,13 @@ export default function App() {
               title={compactComments ? 'Show summaries at original positions' : 'Compact summaries together'}
             >
               <span>{compactComments ? '⬜' : '⬛'}</span>
-              {compactComments ? 'Expanded layout' : 'Compact layout'}
+              {compactComments ? 'Expanded Cmt' : 'Compact Cmt'}
             </button>
             <button className="btn-tool" onClick={handleExpandAll} title="Expand all">
-              <span>⊞</span> Expand
+              <span>⊞</span> Expand Tree
             </button>
             <button className="btn-tool" onClick={handleCollapseAll} title="Collapse all">
-              <span>⊟</span> Collapse
+              <span>⊟</span> Collapse Tree
             </button>
           </div>
         </div>
