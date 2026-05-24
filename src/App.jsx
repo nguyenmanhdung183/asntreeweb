@@ -1078,7 +1078,7 @@ export default function App() {
       {/* ── Main panel ── */}
       <main className="main">
         {/* Toolbar */}
-        {!(activeFile?.type === 'pdf' && fileViewMode === 'pdf') && (
+        {activeFile?.type !== 'note' && (
         <div className="toolbar">
           <div className="toolbar-left">
             <span className="breadcrumb">
@@ -1366,274 +1366,276 @@ export default function App() {
             </div>
           </div>
 
-          <aside 
-            className="comment-panel" 
-            ref={panelRef}
-            style={{ width: `${panelWidth}px` }}
-          >
-            <div 
-              className="panel-resize-handle"
-              onMouseDown={() => setIsDraggingPanel(true)}
-              title="Drag to resize"
-            />
-            <div className="panel-header">
-              <div className="panel-title">
-                {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? 'PDF search & marks' : 'Comment details'}
-              </div>
-              <div className="panel-sub">
-                {activeFile?.type === 'pdf' && fileViewMode === 'pdf'
-                  ? 'Search inside the PDF viewer and add page/line markers.'
-                  : 'Select a node to edit summary & content'}
-                {syncStatus !== 'idle' && (
-                  <span className={`sync-status ${syncStatus}`}>
-                    {syncStatus === 'saving' ? '⏱ Saving...' : syncStatus === 'synced' ? '✓ Synced' : '⚠ Error'}
-                  </span>
-                )}
-                {syncError && (
-                  <div className="sync-error" title={syncError}>
-                    {syncError}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? (
-              <div className="panel-body pdf-panel-body">
-                <div className="pdf-search-tabs">
-                  <button
-                    type="button"
-                    className={`pdf-tab ${pdfSearchTab === 'search' ? 'active' : ''}`}
-                    onClick={() => setPdfSearchTab('search')}
-                  >
-                    Search
-                  </button>
-                  <button
-                    type="button"
-                    className={`pdf-tab ${pdfSearchTab === 'history' ? 'active' : ''}`}
-                    onClick={() => setPdfSearchTab('history')}
-                  >
-                    History
-                  </button>
+          {activeFile?.type !== 'note' && (
+            <aside 
+              className="comment-panel" 
+              ref={panelRef}
+              style={{ width: `${panelWidth}px` }}
+            >
+              <div 
+                className="panel-resize-handle"
+                onMouseDown={() => setIsDraggingPanel(true)}
+                title="Drag to resize"
+              />
+              <div className="panel-header">
+                <div className="panel-title">
+                  {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? 'PDF search & marks' : 'Comment details'}
                 </div>
-
-                {pdfSearchTab === 'search' ? (
-                  <>
-                    <div className="comment-field">
-                      <label>Search across PDF</label>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          value={pdfSearch}
-                          onChange={e => setPdfSearch(e.target.value)}
-                          onKeyDown={handlePdfSearchKeyDown}
-                          placeholder="Search all pages..."
-                          style={{ flex: 1 }}
-                        />
-                        <button className="btn-copy" type="button" onClick={handlePdfSearchSubmit} title="Run search">
-                          🔎
-                        </button>
-                        <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear search">
-                          ✕
-                        </button>
-                      </div>
-                      <div className="pdf-search-actions">
-                        <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev} title="Previous search term">
-                          ↑
-                        </button>
-                        <span>{pdfSearchHistory.length ? `${pdfHistoryIndex + 1}/${pdfSearchHistory.length}` : '0/0'}</span>
-                        <button className="btn-copy" type="button" onClick={handlePdfHistoryNext} title="Next search term">
-                          ↓
-                        </button>
-                      </div>
+                <div className="panel-sub">
+                  {activeFile?.type === 'pdf' && fileViewMode === 'pdf'
+                    ? 'Search inside the PDF viewer and add page/line markers.'
+                    : 'Select a node to edit summary & content'}
+                  {syncStatus !== 'idle' && (
+                    <span className={`sync-status ${syncStatus}`}>
+                      {syncStatus === 'saving' ? '⏱ Saving...' : syncStatus === 'synced' ? '✓ Synced' : '⚠ Error'}
+                    </span>
+                  )}
+                  {syncError && (
+                    <div className="sync-error" title={syncError}>
+                      {syncError}
                     </div>
+                  )}
+                </div>
+              </div>
 
-                    <div className="comment-field">
-                      <label>Page jump</label>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input
-                          type="number"
-                          min="1"
-                          value={pdfPage}
-                          onChange={e => setPdfPage(Number(e.target.value) || 1)}
-                          placeholder="Page number"
-                          style={{ width: 100 }}
-                        />
-                        <button className="btn-copy" type="button" onClick={() => setPdfPage(pdfPage)}>
-                          Go
-                        </button>
-                        <span className="panel-sub" style={{ margin: 0 }}>
-                          Search anchor and page jump are handled by the browser PDF viewer.
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="pdf-history-panel">
-                    {pdfSearchHistory.length ? (
-                      <>
-                        <div className="pdf-history-buttons">
-                          <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev}>Prev</button>
-                          <button className="btn-copy" type="button" onClick={handlePdfHistoryNext}>Next</button>
-                          <button className="btn-copy" type="button" onClick={handleClearPdfHistory}>Clear</button>
-                        </div>
-                        <div className="pdf-history-list">
-                          {pdfSearchHistory.map((term, index) => (
-                            <button
-                              key={term}
-                              type="button"
-                              className={`pdf-history-item ${index === pdfHistoryIndex ? 'active' : ''}`}
-                              onClick={() => handlePdfHistorySelect(index)}
-                            >
-                              {term}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="panel-empty">No PDF search history yet. Run a search to save terms.</div>
-                    )}
-                  </div>
-                )}
-
-                <div className="comment-field">
-                  <label>Mark line/page</label>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input
-                      value={pdfLine}
-                      onChange={e => setPdfLine(e.target.value)}
-                      placeholder="Line or note"
-                      style={{ flex: 1 }}
-                    />
-                    <button className="btn-copy" type="button" onClick={handleAddPdfMark}>
-                      Add mark
+              {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? (
+                <div className="panel-body pdf-panel-body">
+                  <div className="pdf-search-tabs">
+                    <button
+                      type="button"
+                      className={`pdf-tab ${pdfSearchTab === 'search' ? 'active' : ''}`}
+                      onClick={() => setPdfSearchTab('search')}
+                    >
+                      Search
+                    </button>
+                    <button
+                      type="button"
+                      className={`pdf-tab ${pdfSearchTab === 'history' ? 'active' : ''}`}
+                      onClick={() => setPdfSearchTab('history')}
+                    >
+                      History
                     </button>
                   </div>
-                </div>
 
-                {currentPdfMarks.length ? (
-                  <div className="pdf-mark-list">
-                    {currentPdfMarks.map(mark => (
-                      <div key={mark.id} className="pdf-mark-item">
-                        <div>
-                          <strong>Page {mark.page}</strong>{mark.line ? ` · ${mark.line}` : ''}
+                  {pdfSearchTab === 'search' ? (
+                    <>
+                      <div className="comment-field">
+                        <label>Search across PDF</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input
+                            value={pdfSearch}
+                            onChange={e => setPdfSearch(e.target.value)}
+                            onKeyDown={handlePdfSearchKeyDown}
+                            placeholder="Search all pages..."
+                            style={{ flex: 1 }}
+                          />
+                          <button className="btn-copy" type="button" onClick={handlePdfSearchSubmit} title="Run search">
+                            🔎
+                          </button>
+                          <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear search">
+                            ✕
+                          </button>
                         </div>
-                        <button className="btn-copy icon-only" type="button" onClick={() => handleRemovePdfMark(mark.id)} title="Remove mark">
-                          ✕
-                        </button>
+                        <div className="pdf-search-actions">
+                          <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev} title="Previous search term">
+                            ↑
+                          </button>
+                          <span>{pdfSearchHistory.length ? `${pdfHistoryIndex + 1}/${pdfSearchHistory.length}` : '0/0'}</span>
+                          <button className="btn-copy" type="button" onClick={handlePdfHistoryNext} title="Next search term">
+                            ↓
+                          </button>
+                        </div>
                       </div>
-                    ))}
+
+                      <div className="comment-field">
+                        <label>Page jump</label>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <input
+                            type="number"
+                            min="1"
+                            value={pdfPage}
+                            onChange={e => setPdfPage(Number(e.target.value) || 1)}
+                            placeholder="Page number"
+                            style={{ width: 100 }}
+                          />
+                          <button className="btn-copy" type="button" onClick={() => setPdfPage(pdfPage)}>
+                            Go
+                          </button>
+                          <span className="panel-sub" style={{ margin: 0 }}>
+                            Search anchor and page jump are handled by the browser PDF viewer.
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="pdf-history-panel">
+                      {pdfSearchHistory.length ? (
+                        <>
+                          <div className="pdf-history-buttons">
+                            <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev}>Prev</button>
+                            <button className="btn-copy" type="button" onClick={handlePdfHistoryNext}>Next</button>
+                            <button className="btn-copy" type="button" onClick={handleClearPdfHistory}>Clear</button>
+                          </div>
+                          <div className="pdf-history-list">
+                            {pdfSearchHistory.map((term, index) => (
+                              <button
+                                key={term}
+                                type="button"
+                                className={`pdf-history-item ${index === pdfHistoryIndex ? 'active' : ''}`}
+                                onClick={() => handlePdfHistorySelect(index)}
+                              >
+                                {term}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="panel-empty">No PDF search history yet. Run a search to save terms.</div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="comment-field">
+                    <label>Mark line/page</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        value={pdfLine}
+                        onChange={e => setPdfLine(e.target.value)}
+                        placeholder="Line or note"
+                        style={{ flex: 1 }}
+                      />
+                      <button className="btn-copy" type="button" onClick={handleAddPdfMark}>
+                        Add mark
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="panel-empty">No page/line markers yet. Add one to pin a location in this PDF.</div>
-                )}
-              </div>
-            ) : selectedNodeId ? (
-              <div className="panel-body">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <div className="comment-node-name" style={{ marginBottom: 0 }}>{selectedNodeName}</div>
-                  <button
-                    className="btn-copy icon-only"
-                    type="button"
-                    onClick={() => copyText(selectedNodeName || '')}
-                    title="Copy node name"
-                  >
-                    📋
-                  </button>
+
+                  {currentPdfMarks.length ? (
+                    <div className="pdf-mark-list">
+                      {currentPdfMarks.map(mark => (
+                        <div key={mark.id} className="pdf-mark-item">
+                          <div>
+                            <strong>Page {mark.page}</strong>{mark.line ? ` · ${mark.line}` : ''}
+                          </div>
+                          <button className="btn-copy icon-only" type="button" onClick={() => handleRemovePdfMark(mark.id)} title="Remove mark">
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="panel-empty">No page/line markers yet. Add one to pin a location in this PDF.</div>
+                  )}
                 </div>
-
-                {mergedComment?.path && (
-                  <>
-                    <div className="meta-field">
-                      <label>Type</label>
-                      <div className="meta-row">
-                        <div className="meta-value">{mergedComment.type || '—'}</div>
-                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.type || '')} title="Copy type">📋</button>
-                      </div>
-                    </div>
-                    <div className="meta-field">
-                      <label>Struct Type</label>
-                      <div className="meta-row">
-                        <div className="meta-value">{mergedComment.structType || '—'}</div>
-                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.structType || '')} title="Copy struct type">📋</button>
-                      </div>
-                    </div>
-                    <div className="meta-field">
-                      <label>Presence</label>
-                      <div className="meta-row">
-                        <div className="meta-value">{mergedComment.presence || '—'}</div>
-                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.presence || '')} title="Copy presence">📋</button>
-                      </div>
-                    </div>
-                    <div className="meta-field">
-                      <label>Path</label>
-                      <div className="meta-row">
-                        <div className="meta-value meta-path">{mergedComment.path || '—'}</div>
-                        <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.path || '', 'Path')} title="Copy path">📋</button>
-                      </div>
-                    </div>
-                    <hr style={{ margin: '12px 0', borderColor: 'var(--border)' }} />
-                  </>
-                )}
-
-                <div className="comment-field">
-                  <label>Summary</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      value={selectedComment?.summary || ''}
-                      onChange={e => updateCommentField(selectedNodeId, 'summary', e.target.value)}
-                      placeholder="Short summary shown on the line"
-                      style={{ flex: 1 }}
-                    />
+              ) : selectedNodeId ? (
+                <div className="panel-body">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div className="comment-node-name" style={{ marginBottom: 0 }}>{selectedNodeName}</div>
                     <button
-                      className="btn-copy"
+                      className="btn-copy icon-only"
                       type="button"
-                      onClick={() => copyText(selectedComment?.summary || '')}
-                      title="Copy summary"
+                      onClick={() => copyText(selectedNodeName || '')}
+                      title="Copy node name"
                     >
                       📋
                     </button>
                   </div>
-                </div>
-                <div className="comment-field">
-                  <label>Main content</label>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <textarea
-                      value={selectedComment?.main || ''}
-                      onChange={e => updateCommentField(selectedNodeId, 'main', e.target.value)}
-                      placeholder="Detailed comment content"
-                      style={{ minHeight: 160, marginBottom: 6 }}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+
+                  {mergedComment?.path && (
+                    <>
+                      <div className="meta-field">
+                        <label>Type</label>
+                        <div className="meta-row">
+                          <div className="meta-value">{mergedComment.type || '—'}</div>
+                          <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.type || '')} title="Copy type">📋</button>
+                        </div>
+                      </div>
+                      <div className="meta-field">
+                        <label>Struct Type</label>
+                        <div className="meta-row">
+                          <div className="meta-value">{mergedComment.structType || '—'}</div>
+                          <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.structType || '')} title="Copy struct type">📋</button>
+                        </div>
+                      </div>
+                      <div className="meta-field">
+                        <label>Presence</label>
+                        <div className="meta-row">
+                          <div className="meta-value">{mergedComment.presence || '—'}</div>
+                          <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.presence || '')} title="Copy presence">📋</button>
+                        </div>
+                      </div>
+                      <div className="meta-field">
+                        <label>Path</label>
+                        <div className="meta-row">
+                          <div className="meta-value meta-path">{mergedComment.path || '—'}</div>
+                          <button className="btn-copy icon-only absolute" type="button" onClick={() => copyText(mergedComment.path || '', 'Path')} title="Copy path">📋</button>
+                        </div>
+                      </div>
+                      <hr style={{ margin: '12px 0', borderColor: 'var(--border)' }} />
+                    </>
+                  )}
+
+                  <div className="comment-field">
+                    <label>Summary</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        value={selectedComment?.summary || ''}
+                        onChange={e => updateCommentField(selectedNodeId, 'summary', e.target.value)}
+                        placeholder="Short summary shown on the line"
+                        style={{ flex: 1 }}
+                      />
                       <button
                         className="btn-copy"
                         type="button"
-                        onClick={() => copyText(selectedComment?.main || '')}
-                        title="Copy main content"
+                        onClick={() => copyText(selectedComment?.summary || '')}
+                        title="Copy summary"
                       >
-                        📋 Copy
+                        📋
                       </button>
                     </div>
                   </div>
+                  <div className="comment-field">
+                    <label>Main content</label>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <textarea
+                        value={selectedComment?.main || ''}
+                        onChange={e => updateCommentField(selectedNodeId, 'main', e.target.value)}
+                        placeholder="Detailed comment content"
+                        style={{ minHeight: 160, marginBottom: 6 }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn-copy"
+                          type="button"
+                          onClick={() => copyText(selectedComment?.main || '')}
+                          title="Copy main content"
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="panel-empty">
-                <p>Click the comment icon on a node line to open the comment editor.</p>
-                {Object.keys(comments).length > 0 && (
-                  <button
-                    className="btn-clear-comments"
-                    onClick={() => {
-                      if (confirm('Delete all comments? This cannot be undone.')) {
-                        clearCommentsFromAPI()
-                        setComments({})
-                      }
-                    }}
-                  >
-                    🗑 Clear all comments
-                  </button>
-                )}
-              </div>
-            )}
-          </aside>
+              ) : (
+                <div className="panel-empty">
+                  <p>Click the comment icon on a node line to open the comment editor.</p>
+                  {Object.keys(comments).length > 0 && (
+                    <button
+                      className="btn-clear-comments"
+                      onClick={() => {
+                        if (confirm('Delete all comments? This cannot be undone.')) {
+                          clearCommentsFromAPI()
+                          setComments({})
+                        }
+                      }}
+                    >
+                      🗑 Clear all comments
+                    </button>
+                  )}
+                </div>
+              )}
+            </aside>
+          )}
         </div>
       </main>
     </div>
