@@ -190,6 +190,15 @@ export default function App() {
   const [showAllComments, setShowAllComments] = useState(true)
   const [compactComments, setCompactComments] = useState(true)
   const [fileViewMode, setFileViewMode] = useState('tree')
+  const [fileListTab, setFileListTab] = useState('txt')
+  const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '' })
+  const [pdfSearch, setPdfSearch] = useState('')
+  const [pdfPage, setPdfPage] = useState(1)
+  const [pdfLine, setPdfLine] = useState('')
+  const [pdfMarks, setPdfMarks] = useState({})
+  const [pdfSearchHistory, setPdfSearchHistory] = useState([])
+  const [pdfHistoryIndex, setPdfHistoryIndex] = useState(-1)
+  const [pdfSearchTab, setPdfSearchTab] = useState('search')
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(264)
@@ -204,6 +213,51 @@ export default function App() {
   const panelRef = useRef(null)
   const saveTimeoutRef = useRef(null)
 
+  useEffect(() => {
+    try {
+      const storedTab = sessionStorage.getItem('asn_file_list_tab')
+      const storedFiles = sessionStorage.getItem('asn_last_selected_files')
+      if (storedTab === 'pdf' || storedTab === 'txt') {
+        setFileListTab(storedTab)
+      }
+      if (storedFiles) {
+        const parsed = JSON.parse(storedFiles)
+        if (parsed && typeof parsed === 'object') {
+          setLastSelectedFiles({
+            txt: parsed.txt || '',
+            pdf: parsed.pdf || '',
+          })
+        }
+      }
+    } catch (e) {
+      // ignore session storage errors
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('asn_file_list_tab', fileListTab)
+    } catch (e) {
+      // ignore
+    }
+  }, [fileListTab])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('asn_last_selected_files', JSON.stringify(lastSelectedFiles))
+    } catch (e) {
+      // ignore
+    }
+  }, [lastSelectedFiles])
+
+  const updateLastSelectedFile = (file) => {
+    if (!file) return
+    setLastSelectedFiles(prev => {
+      if (prev[file.type] === file.fname) return prev
+      return { ...prev, [file.type]: file.fname }
+    })
+  }
+
   const handleSelectNode = (nodeId, nodeName) => {
     setSelectedNodeId(nodeId)
     setSelectedNodeName(nodeName)
@@ -217,6 +271,11 @@ export default function App() {
       }
     }
   }
+
+  useEffect(() => {
+    if (!activeFile) return
+    updateLastSelectedFile(activeFile)
+  }, [activeFile])
 
   const updateCommentField = (nodeId, field, value) => {
     setComments(prev => {
@@ -416,7 +475,14 @@ export default function App() {
       }
 
       setFiles(loaded)
-      if (loaded.length) setActiveFile(loaded[0])
+      if (loaded.length) {
+        let preferred
+        if (fileListTab && lastSelectedFiles[fileListTab]) {
+          preferred = loaded.find(f => f.type === fileListTab && f.fname === lastSelectedFiles[fileListTab])
+        }
+        if (!preferred) preferred = loaded.find(f => f.type === fileListTab)
+        setActiveFile(preferred || loaded[0])
+      }
       setLoading(false)
       
       // Load comments from API
@@ -490,7 +556,63 @@ export default function App() {
   useEffect(() => {
     if (!activeFile) return
     setFileViewMode(activeFile.type === 'pdf' ? 'pdf' : 'tree')
+    if (activeFile.type === 'pdf') {
+      setPdfSearch('')
+      setPdfPage(1)
+      setPdfLine('')
+      setPdfHistoryIndex(-1)
+      setPdfSearchTab('search')
+    }
   }, [activeFile])
+
+  const addPdfHistoryTerm = (term) => {
+    const normalized = String(term || '').trim()
+    if (!normalized) return
+    setPdfSearchHistory(prev => {
+      const existing = prev.filter(item => item !== normalized)
+      return [normalized, ...existing].slice(0, 20)
+    })
+    setPdfHistoryIndex(0)
+  }
+
+  const handlePdfSearchSubmit = () => {
+    const term = String(pdfSearch || '').trim()
+    if (!term) return
+    setPdfSearch(term)
+    setPdfPage(1)
+    addPdfHistoryTerm(term)
+  }
+
+  const handlePdfSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handlePdfSearchSubmit()
+    }
+  }
+
+  const handlePdfHistorySelect = (index) => {
+    const term = pdfSearchHistory[index]
+    if (!term) return
+    setPdfSearch(term)
+    setPdfHistoryIndex(index)
+  }
+
+  const handlePdfHistoryPrev = () => {
+    if (pdfSearchHistory.length === 0) return
+    const nextIndex = pdfHistoryIndex > 0 ? pdfHistoryIndex - 1 : pdfSearchHistory.length - 1
+    handlePdfHistorySelect(nextIndex)
+  }
+
+  const handlePdfHistoryNext = () => {
+    if (pdfSearchHistory.length === 0) return
+    const nextIndex = pdfHistoryIndex < 0 || pdfHistoryIndex === pdfSearchHistory.length - 1 ? 0 : pdfHistoryIndex + 1
+    handlePdfHistorySelect(nextIndex)
+  }
+
+  const handleClearPdfHistory = () => {
+    setPdfSearchHistory([])
+    setPdfHistoryIndex(-1)
+  }
 
   const handleExpandAll = () => treeRef.current?.openAll()
   const handleCollapseAll = () => treeRef.current?.closeAll()
@@ -500,11 +622,71 @@ export default function App() {
     return activeFile.tree ?? []
   }, [activeFile])
 
+  const currentPdfMarks = useMemo(() => {
+    if (!activeFile || activeFile.type !== 'pdf') return []
+    return pdfMarks[activeFile.fname] || []
+  }, [activeFile, pdfMarks])
+
+  const pdfViewerUrl = useMemo(() => {
+    if (!activeFile || activeFile.type !== 'pdf') return ''
+    const baseUrl = activeFile.pdfUrl || ''
+    const params = []
+    if (pdfPage && Number(pdfPage) > 0) {
+      params.push(`page=${encodeURIComponent(Number(pdfPage))}`)
+    }
+    if (pdfSearch.trim()) {
+      params.push(`search=${encodeURIComponent(pdfSearch.trim())}`)
+    }
+    return params.length ? `${baseUrl}#${params.join('&')}` : baseUrl
+  }, [activeFile, pdfSearch, pdfPage])
+
+  const handleAddPdfMark = () => {
+    if (!activeFile || activeFile.type !== 'pdf') return
+    const pageNumber = Number(pdfPage) || 1
+    const mark = {
+      id: `${Date.now()}`,
+      page: pageNumber,
+      line: pdfLine.trim(),
+      created: new Date().toLocaleString(),
+    }
+    setPdfMarks(prev => ({
+      ...prev,
+      [activeFile.fname]: [...(prev[activeFile.fname] || []), mark],
+    }))
+    setPdfLine('')
+  }
+
+  const handleRemovePdfMark = markId => {
+    if (!activeFile || activeFile.type !== 'pdf') return
+    setPdfMarks(prev => ({
+      ...prev,
+      [activeFile.fname]: (prev[activeFile.fname] || []).filter(mark => mark.id !== markId),
+    }))
+  }
+
   // Filter files based on file search
   const filteredFiles = useMemo(() => {
-    if (!fileSearch.trim()) return files
-    return files.filter(f => fileSearchMatch(f.name, fileSearch))
-  }, [files, fileSearch])
+    const list = files.filter(f => f.type === fileListTab)
+    if (!fileSearch.trim()) return list
+    return list.filter(f => fileSearchMatch(f.name, fileSearch))
+  }, [files, fileSearch, fileListTab, fileListTab])
+
+  const handleFileListTabChange = (tab) => {
+    if (tab !== 'txt' && tab !== 'pdf') return
+    setFileListTab(tab)
+    if (activeFile?.type !== tab) {
+      const preferred = files.find(f => f.type === tab && f.fname === lastSelectedFiles[tab]) || files.find(f => f.type === tab)
+      if (preferred) {
+        setActiveFile(preferred)
+        setSearch('')
+        setSearchComment('')
+        setSelectedNodeId(null)
+        setSelectedNodeName('')
+        if (tab === 'txt') setFileViewMode('tree')
+        if (tab === 'pdf') setFileViewMode('pdf')
+      }
+    }
+  }
 
   // Build a flat list of all nodes with their tree indices for positioning
   const flatNodeList = useMemo(() => {
@@ -666,7 +848,24 @@ export default function App() {
         />
 
         <div className="sidebar-section-label">FILES</div>
-        
+
+        <div className="file-filter-tabs">
+          <button
+            type="button"
+            className={`file-filter-tab ${fileListTab === 'txt' ? 'active' : ''}`}
+            onClick={() => handleFileListTabChange('txt')}
+          >
+            Tree files
+          </button>
+          <button
+            type="button"
+            className={`file-filter-tab ${fileListTab === 'pdf' ? 'active' : ''}`}
+            onClick={() => handleFileListTabChange('pdf')}
+          >
+            PDF files
+          </button>
+        </div>
+
         <div className="file-search-wrap">
           <span className="search-icon">⌕</span>
           <input
@@ -699,25 +898,25 @@ export default function App() {
         </nav>
 
         {activeFile?.type === 'pdf' && (
-          <div className="pdf-view-switch-panel">
-            <div className="pdf-view-switch-label">PDF view</div>
-            <div className="pdf-view-switch-buttons">
+          <>
+            <div className="sidebar-section-label">VIEW</div>
+            <nav className="view-list">
               <button
-                className={`btn-tool ${fileViewMode === 'tree' ? 'active' : ''}`}
+                className={`view-item ${fileViewMode === 'tree' ? 'active' : ''}`}
                 type="button"
                 onClick={() => setFileViewMode('tree')}
               >
-                Tree
+                Tree view
               </button>
               <button
-                className={`btn-tool ${fileViewMode === 'pdf' ? 'active' : ''}`}
+                className={`view-item ${fileViewMode === 'pdf' ? 'active' : ''}`}
                 type="button"
                 onClick={() => setFileViewMode('pdf')}
               >
-                PDF
+                PDF view
               </button>
-            </div>
-          </div>
+            </nav>
+          </>
         )}
 
         <div className="sidebar-footer">
@@ -735,6 +934,7 @@ export default function App() {
       {/* ── Main panel ── */}
       <main className="main">
         {/* Toolbar */}
+        {!(activeFile?.type === 'pdf' && fileViewMode === 'pdf') && (
         <div className="toolbar">
           <div className="toolbar-left">
             <span className="breadcrumb">
@@ -783,29 +983,7 @@ export default function App() {
               <span className="match-badge">{matchedNodes.length ? `${matchCursor + 1}/${matchedNodes.length}` : '0/0'}</span>
               <button className="nav-button" onClick={nextMatch} title="Next match">▶</button>
             </div>
-            {activeFile?.type === 'pdf' && (
-            <button
-              className={`btn-tool ${fileViewMode === 'tree' ? 'active' : ''}`}
-              type="button"
-              onClick={() => setFileViewMode('tree')}
-              title="Show tree view for this PDF"
-            >
-              <span>🌳</span>
-              View tree
-            </button>
-          )}
-          {activeFile?.type === 'pdf' && (
-            <button
-              className={`btn-tool ${fileViewMode === 'pdf' ? 'active' : ''}`}
-              type="button"
-              onClick={() => setFileViewMode('pdf')}
-              title="Show PDF preview"
-            >
-              <span>📄</span>
-              View PDF
-            </button>
-          )}
-          {isStructuredFile && (
+            {isStructuredFile && (
               <button
                 className={`btn-tool ${displayMode === 'type' ? 'active' : ''}`}
                 type="button"
@@ -842,6 +1020,7 @@ export default function App() {
             </button>
           </div>
         </div>
+        )}
 
         <div className="main-content">
           <div className="tree-area">
@@ -863,7 +1042,7 @@ export default function App() {
                   <iframe
                     className="pdf-viewer"
                     title={activeFile.name}
-                    src={activeFile.pdfUrl}
+                    src={pdfViewerUrl}
                   />
                 ) : activeTree.length ? (
                   <Tree
@@ -1030,9 +1209,13 @@ export default function App() {
               title="Drag to resize"
             />
             <div className="panel-header">
-              <div className="panel-title">Comment details</div>
+              <div className="panel-title">
+                {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? 'PDF search & marks' : 'Comment details'}
+              </div>
               <div className="panel-sub">
-                Select a node to edit summary & content
+                {activeFile?.type === 'pdf' && fileViewMode === 'pdf'
+                  ? 'Search inside the PDF viewer and add page/line markers.'
+                  : 'Select a node to edit summary & content'}
                 {syncStatus !== 'idle' && (
                   <span className={`sync-status ${syncStatus}`}>
                     {syncStatus === 'saving' ? '⏱ Saving...' : syncStatus === 'synced' ? '✓ Synced' : '⚠ Error'}
@@ -1046,7 +1229,136 @@ export default function App() {
               </div>
             </div>
 
-            {selectedNodeId ? (
+            {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? (
+              <div className="panel-body pdf-panel-body">
+                <div className="pdf-search-tabs">
+                  <button
+                    type="button"
+                    className={`pdf-tab ${pdfSearchTab === 'search' ? 'active' : ''}`}
+                    onClick={() => setPdfSearchTab('search')}
+                  >
+                    Search
+                  </button>
+                  <button
+                    type="button"
+                    className={`pdf-tab ${pdfSearchTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setPdfSearchTab('history')}
+                  >
+                    History
+                  </button>
+                </div>
+
+                {pdfSearchTab === 'search' ? (
+                  <>
+                    <div className="comment-field">
+                      <label>Search across PDF</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          value={pdfSearch}
+                          onChange={e => setPdfSearch(e.target.value)}
+                          onKeyDown={handlePdfSearchKeyDown}
+                          placeholder="Search all pages..."
+                          style={{ flex: 1 }}
+                        />
+                        <button className="btn-copy" type="button" onClick={handlePdfSearchSubmit} title="Run search">
+                          🔎
+                        </button>
+                        <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear search">
+                          ✕
+                        </button>
+                      </div>
+                      <div className="pdf-search-actions">
+                        <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev} title="Previous search term">
+                          ↑
+                        </button>
+                        <span>{pdfSearchHistory.length ? `${pdfHistoryIndex + 1}/${pdfSearchHistory.length}` : '0/0'}</span>
+                        <button className="btn-copy" type="button" onClick={handlePdfHistoryNext} title="Next search term">
+                          ↓
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="comment-field">
+                      <label>Page jump</label>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          value={pdfPage}
+                          onChange={e => setPdfPage(Number(e.target.value) || 1)}
+                          placeholder="Page number"
+                          style={{ width: 100 }}
+                        />
+                        <button className="btn-copy" type="button" onClick={() => setPdfPage(pdfPage)}>
+                          Go
+                        </button>
+                        <span className="panel-sub" style={{ margin: 0 }}>
+                          Search anchor and page jump are handled by the browser PDF viewer.
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="pdf-history-panel">
+                    {pdfSearchHistory.length ? (
+                      <>
+                        <div className="pdf-history-buttons">
+                          <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev}>Prev</button>
+                          <button className="btn-copy" type="button" onClick={handlePdfHistoryNext}>Next</button>
+                          <button className="btn-copy" type="button" onClick={handleClearPdfHistory}>Clear</button>
+                        </div>
+                        <div className="pdf-history-list">
+                          {pdfSearchHistory.map((term, index) => (
+                            <button
+                              key={term}
+                              type="button"
+                              className={`pdf-history-item ${index === pdfHistoryIndex ? 'active' : ''}`}
+                              onClick={() => handlePdfHistorySelect(index)}
+                            >
+                              {term}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="panel-empty">No PDF search history yet. Run a search to save terms.</div>
+                    )}
+                  </div>
+                )}
+
+                <div className="comment-field">
+                  <label>Mark line/page</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      value={pdfLine}
+                      onChange={e => setPdfLine(e.target.value)}
+                      placeholder="Line or note"
+                      style={{ flex: 1 }}
+                    />
+                    <button className="btn-copy" type="button" onClick={handleAddPdfMark}>
+                      Add mark
+                    </button>
+                  </div>
+                </div>
+
+                {currentPdfMarks.length ? (
+                  <div className="pdf-mark-list">
+                    {currentPdfMarks.map(mark => (
+                      <div key={mark.id} className="pdf-mark-item">
+                        <div>
+                          <strong>Page {mark.page}</strong>{mark.line ? ` · ${mark.line}` : ''}
+                        </div>
+                        <button className="btn-copy icon-only" type="button" onClick={() => handleRemovePdfMark(mark.id)} title="Remove mark">
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="panel-empty">No page/line markers yet. Add one to pin a location in this PDF.</div>
+                )}
+              </div>
+            ) : selectedNodeId ? (
               <div className="panel-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <div className="comment-node-name" style={{ marginBottom: 0 }}>{selectedNodeName}</div>
