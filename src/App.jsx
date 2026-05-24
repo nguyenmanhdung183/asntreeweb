@@ -1507,14 +1507,14 @@ export default function App() {
             className={`file-filter-tab ${fileListTab === 'txt' ? 'active' : ''}`}
             onClick={() => handleFileListTabChange('txt')}
           >
-            Tree files
+            Tree
           </button>
           <button
             type="button"
             className={`file-filter-tab ${fileListTab === 'pdf' ? 'active' : ''}`}
             onClick={() => handleFileListTabChange('pdf')}
           >
-            PDF files
+            PDF
           </button>
           <button
             type="button"
