@@ -12,6 +12,7 @@ const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
 const MANIFEST_URL = './data/manifest.json'
 const PDF_FILE_LIST = ['E2AP-V8.pdf', 'E2SM-CCC.pdf', 'E2SM-KPM.pdf', 'E2SM-LLC.pdf', 'E2SM-NI.pdf', 'E2SM-RC.pdf', 'E2SM.pdf']
 const PDF_BASE_URL = './pdf'
+const PDF_MANIFEST_URL = `${PDF_BASE_URL}/manifest.json`
 const OTHER_BASE_URL = './other'
 const OTHER_MANIFEST_URL = `${OTHER_BASE_URL}/manifest.json`
 
@@ -615,8 +616,20 @@ export default function App() {
         }
       }
 
-      if (PDF_FILE_LIST.length) {
-        for (const fname of PDF_FILE_LIST) {
+      // Load PDF list from manifest if available, otherwise fall back to hardcoded list
+      let pdfList = PDF_FILE_LIST
+      try {
+        const pres = await fetch(PDF_MANIFEST_URL)
+        if (pres.ok) {
+          const pf = await pres.json()
+          if (Array.isArray(pf) && pf.length) pdfList = pf
+        }
+      } catch (e) {
+        // ignore and use fallback PDF_FILE_LIST
+      }
+
+      if (Array.isArray(pdfList) && pdfList.length) {
+        for (const fname of pdfList) {
           loaded.push({
             name: fname.replace(/\.pdf$/i, ''),
             fname,
