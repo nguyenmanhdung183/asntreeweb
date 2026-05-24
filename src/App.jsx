@@ -143,6 +143,7 @@ export default function App() {
   const [comments, setComments] = useState({})
   const [searchComment, setSearchComment] = useState('')
   const [showAllComments, setShowAllComments] = useState(true)
+  const [compactComments, setCompactComments] = useState(false)
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(264)
@@ -439,6 +440,17 @@ export default function App() {
     return result
   }, [activeTree])
 
+  const commentItems = useMemo(() => {
+    if (!activeFile) return []
+    const items = []
+    for (const { node, depth, index } of flatNodeList) {
+      const key = `${activeFile.fname}:${node.id}`
+      const summary = comments[key]?.summary?.trim()
+      if (summary) items.push({ node, depth, index, key, summary })
+    }
+    return items
+  }, [activeFile, flatNodeList, comments])
+
   // Tree search match that supports name/type/structType and comment (summary+main)
   const treeSearchMatch = useCallback((node, term) => {
     const parts = String(term || '').split('||')
@@ -506,6 +518,38 @@ export default function App() {
     return s
   }, [flatNodeList, searchComment, comments, activeFile])
 
+  const scrollSelectedIntoView = useCallback(() => {
+    if (!selectedNodeId) return
+    const nodeId = `node-${String(selectedNodeId).replace(/[:\/\s]/g, '-')}`
+    const el = document.getElementById(nodeId)
+    if (el) {
+      const treeContainer = document.querySelector('.tree-container')
+      if (treeContainer) {
+        const rect = el.getBoundingClientRect()
+        const crect = treeContainer.getBoundingClientRect()
+        const offset = rect.top - crect.top - (crect.height / 2) + (rect.height / 2)
+        treeContainer.scrollBy({ top: offset, behavior: 'smooth' })
+      } else {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }
+    }
+
+    const overlay = document.querySelector('.comment-overlay')
+    const selectedOverlayItem = overlay?.querySelector('.comment-overlay-item.overlay-selected')
+    if (overlay && selectedOverlayItem) {
+      const rect = selectedOverlayItem.getBoundingClientRect()
+      const crect = overlay.getBoundingClientRect()
+      const offset = rect.top - crect.top - (crect.height / 2) + (rect.height / 2)
+      overlay.scrollBy({ top: offset, behavior: 'smooth' })
+    }
+  }, [selectedNodeId])
+
+  useEffect(() => {
+    if (!selectedNodeId) return
+    const timer = window.setTimeout(scrollSelectedIntoView, 20)
+    return () => window.clearTimeout(timer)
+  }, [selectedNodeId, scrollSelectedIntoView])
+
   const goToMatch = (idx) => {
     if (!matchedNodes.length) return
     const i = ((idx % matchedNodes.length) + matchedNodes.length) % matchedNodes.length
@@ -513,28 +557,6 @@ export default function App() {
     const nodeKey = matchedNodes[i]
     setSelectedNodeId(nodeKey)
     setSelectedNodeName(comments[nodeKey]?.summary ?? '')
-    // scroll tree to reveal node
-    setTimeout(() => {
-      try {
-        const id = `node-${String(nodeKey).replace(/[:\/\s]/g, '-')}`
-        const el = document.getElementById(id)
-        if (el) {
-          // find the scrollable tree container
-          const container = document.querySelector('.tree-container')
-          if (container) {
-            const rect = el.getBoundingClientRect()
-            const crect = container.getBoundingClientRect()
-            // compute offset relative to container and scroll
-            const offset = rect.top - crect.top - (crect.height / 2) + (rect.height / 2)
-            container.scrollBy({ top: offset, behavior: 'smooth' })
-          } else {
-            el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    }, 20)
   }
 
   const nextMatch = () => goToMatch(matchCursor + 1)
@@ -678,6 +700,15 @@ export default function App() {
               <span>{showAllComments ? '☑' : '☐'}</span>
               {showAllComments ? 'Hide summaries' : 'Show summaries'}
             </button>
+            <button
+              className={`btn-tool ${compactComments ? 'active' : ''}`}
+              type="button"
+              onClick={() => setCompactComments(prev => !prev)}
+              title={compactComments ? 'Show summaries at original positions' : 'Compact summaries together'}
+            >
+              <span>{compactComments ? '⬜' : '⬛'}</span>
+              {compactComments ? 'Expanded layout' : 'Compact layout'}
+            </button>
             <button className="btn-tool" onClick={handleExpandAll} title="Expand all">
               <span>⊞</span> Expand
             </button>
@@ -748,43 +779,45 @@ export default function App() {
                 className="comment-overlay"
                 style={{ width: `${overlayWidth}px` }}
               >
-                {flatNodeList.map(({ node, index, depth }) => {
-                  const nodeKey = `${activeFile?.fname}:${node.id}`
-                  const comment = comments[nodeKey]
-                  const summary = comment?.summary?.trim()
-                  if (!summary) return null
-                  const structTypeValue = String(node.data?.structType || node.structType || '')
-                  const isRecursive = structTypeValue.toUpperCase() === 'RECURSIVE'
-                  const top = index * 28 + 8 // rowHeight (28) + top padding
-                  
-                  return (
+                <div
+                  className="comment-overlay-inner"
+                  style={{ height: `${commentItems.length * 28 + 8}px` }}
+                >
+                  {commentItems.map(({ node, index, depth, key, summary }, commentIndex) => {
+                    const nodeKey = key
+                    const structTypeValue = String(node.data?.structType || node.structType || '')
+                    const isRecursive = structTypeValue.toUpperCase() === 'RECURSIVE'
+                    const top = compactComments ? commentIndex * 28 + 8 : index * 28 + 8
+                    
+                    return (
                       <div 
                         key={nodeKey} 
                         data-node-key={nodeKey}
                         className={`comment-overlay-item ${selectedNodeId === nodeKey ? 'overlay-selected' : ''} ${matchedCommentSet.has(nodeKey) ? 'overlay-matched' : ''}`}
                         style={{ top: `${top}px` }}
-                      onClick={e => {
-                        e.stopPropagation()
-                        handleSelectNode(nodeKey, node.name)
-                      }}
-                    >
-                      <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${depth}`}>
-                        {isRecursive ? 'RECUR' : `L${depth}`}
-                      </span>
-                      <button
-                        className="overlay-comment-btn"
-                        type="button"
                         onClick={e => {
                           e.stopPropagation()
                           handleSelectNode(nodeKey, node.name)
                         }}
                       >
-                        ✎
-                      </button>
-                      <div className="comment-overlay-summary">{summary}</div>
-                    </div>
-                  )
-                })}
+                        <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${depth}`}>
+                          {isRecursive ? 'RECUR' : `L${depth}`}
+                        </span>
+                        <button
+                          className="overlay-comment-btn"
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            handleSelectNode(nodeKey, node.name)
+                          }}
+                        >
+                          ✎
+                        </button>
+                        <div className="comment-overlay-summary">{summary}</div>
+                      </div>
+                    )
+                  })}
+                </div>
                 <div 
                   className="overlay-resize-handle"
                   onMouseDown={() => setIsDraggingOverlay(true)}

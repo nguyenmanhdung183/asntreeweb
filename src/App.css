@@ -438,12 +438,18 @@
   position: absolute;
   top: 0;
   right: 0;
+  bottom: 0;
   height: 100%;
-  pointer-events: none;
+  overflow-y: auto;
   z-index: 1;
   background: var(--bg);
   border-left: 1px solid var(--border);
   transition: width 0.1s ease-out;
+}
+
+.comment-overlay-inner {
+  position: relative;
+  width: 100%;
 }
 
 .comment-overlay-item {
