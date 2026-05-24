@@ -1,0 +1,20 @@
+[
+  "hardcode_for_E2SM_RC_ServiceLayerCause.c",
+  "hardcode_for_E2SM_RC_RANFunctionDefinition.c",
+  "hardcode_for_E2SM_RC_QueryOutcome.c",
+  "hardcode_for_E2SM_RC_QueryHeader.c",
+  "hardcode_for_E2SM_RC_QueryDefinition.c",
+  "hardcode_for_E2SM_RC_IndicationMessage.c",
+  "hardcode_for_E2SM_RC_IndicationHeader.c",
+  "hardcode_for_E2SM_RC_EventTrigger.c",
+  "hardcode_for_E2SM_RC_ControlOutcome.c",
+  "hardcode_for_E2SM_RC_ControlMessage.c",
+  "hardcode_for_E2SM_RC_ControlHeader.c",
+  "hardcode_for_E2SM_RC_CallProcessID.c",
+  "hardcode_for_E2SM_RC_ActionDefinition.c",
+  "hardcode_for_E2SM_KPM_RANfunction_Description.c",
+  "hardcode_for_E2SM_KPM_IndicationMessage.c",
+  "hardcode_for_E2SM_KPM_IndicationHeader.c",
+  "hardcode_for_E2SM_KPM_EventTriggerDefinition.c",
+  "hardcode_for_E2SM_KPM_ActionDefinition.c"
+]

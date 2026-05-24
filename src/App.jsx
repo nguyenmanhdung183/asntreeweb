@@ -12,6 +12,8 @@ const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
 const MANIFEST_URL = './data/manifest.json'
 const PDF_FILE_LIST = ['E2AP-V8.pdf', 'E2SM-CCC.pdf', 'E2SM-KPM.pdf', 'E2SM-LLC.pdf', 'E2SM-NI.pdf', 'E2SM-RC.pdf', 'E2SM.pdf']
 const PDF_BASE_URL = './pdf'
+const OTHER_BASE_URL = './other'
+const OTHER_MANIFEST_URL = `${OTHER_BASE_URL}/manifest.json`
 
 // ─── Node renderer ────────────────────────────────────────────────────────────
 function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode, rowIndex, nodeKey, isMatched, matchedName, matchedComment }) {
@@ -237,7 +239,7 @@ export default function App() {
   const [fileViewMode, setFileViewMode] = useState('tree')
   const [fileListTab, setFileListTab] = useState('txt')
   const [notes, setNotes] = useState([])
-  const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '', notes: '' })
+  const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '', notes: '', other: '' })
   const [pdfSearch, setPdfSearch] = useState('')
   const [pdfPage, setPdfPage] = useState(1)
   const [pdfMarkPage, setPdfMarkPage] = useState('')
@@ -245,6 +247,87 @@ export default function App() {
   const [pdfMarkLine, setPdfMarkLine] = useState('')
   const [pdfMarkNote, setPdfMarkNote] = useState('')
   const [pdfMarks, setPdfMarks] = useState({})
+  const [otherFileContent, setOtherFileContent] = useState('')
+  const [otherLoading, setOtherLoading] = useState(false)
+  const [otherSearch, setOtherSearch] = useState('')
+  const [otherSearchResults, setOtherSearchResults] = useState({ total: 0, lines: [] })
+  const [otherMatchIndex, setOtherMatchIndex] = useState(-1)
+  const [otherSearchHistory, setOtherSearchHistory] = useState([])
+  const [otherHistoryIndex, setOtherHistoryIndex] = useState(-1)
+  const [otherSearchTab, setOtherSearchTab] = useState('search')
+  const [otherMarkLine, setOtherMarkLine] = useState('')
+  const [otherMarkNote, setOtherMarkNote] = useState('')
+
+  // Very small C syntax highlighter (best-effort)
+  const highlightC = (code) => {
+    if (!code) return ''
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    let out = esc(code)
+
+    // comments (/* */ and //)
+    out = out.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
+    out = out.replace(/(\/\/.*?$)/gmu, '<span class="code-comment">$1</span>')
+
+    // strings
+    out = out.replace(/(\"(?:\\\"|[^\"])*\"|\'(?:\\'|[^'])*\')/g, '<span class="code-string">$1</span>')
+
+    // numbers
+    out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?)\b/g, '<span class="code-number">$1</span>')
+
+    // keywords
+    const keywords = ['int','char','void','return','if','else','for','while','do','switch','case','break','continue','default','struct','union','typedef','static','const','sizeof','enum','unsigned','signed','long','short']
+    const kwRegex = new RegExp('\\\b(' + keywords.join('|') + ')\\\b', 'g')
+    out = out.replace(kwRegex, '<span class="code-keyword">$1</span>')
+
+    // common types
+    const types = ['size_t','uint32_t','uint16_t','uint8_t','int32_t','int64_t']
+    const tRegex = new RegExp('\\\b(' + types.join('|') + ')\\\b', 'g')
+    out = out.replace(tRegex, '<span class="code-type">$1</span>')
+
+    return out
+  }
+
+  const highlightLine = (line) => {
+    if (!line) return ''
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    let out = esc(line)
+    out = out.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
+    out = out.replace(/(\/\/.*?$)/gmu, '<span class="code-comment">$1</span>')
+    out = out.replace(/(\"(?:\\\"|[^"])*\"|\'(?:\\'|[^'])*\')/g, '<span class="code-string">$1</span>')
+    out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?)\b/g, '<span class="code-number">$1</span>')
+    const keywords = ['int','char','void','return','if','else','for','while','do','switch','case','break','continue','default','struct','union','typedef','static','const','sizeof','enum','unsigned','signed','long','short']
+    const kwRegex = new RegExp('\\\b(' + keywords.join('|') + ')\\\b', 'g')
+    out = out.replace(kwRegex, '<span class="code-keyword">$1</span>')
+    const types = ['size_t','uint32_t','uint16_t','uint8_t','int32_t','int64_t']
+    const tRegex = new RegExp('\\\b(' + types.join('|') + ')\\\b', 'g')
+    out = out.replace(tRegex, '<span class="code-type">$1</span>')
+    return out
+  }
+
+  useEffect(() => {
+    let canceled = false
+    async function loadOtherFile() {
+      if (!activeFile || activeFile.type !== 'other') {
+        setOtherFileContent('')
+        return
+      }
+      setOtherLoading(true)
+      try {
+        const res = await fetch(activeFile.fileUrl)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const text = await res.text()
+        if (canceled) return
+        setOtherFileContent(text)
+      } catch (e) {
+        console.warn('Could not load other file:', e)
+        if (!canceled) setOtherFileContent(`Could not load file: ${e.message}`)
+      } finally {
+        if (!canceled) setOtherLoading(false)
+      }
+    }
+    loadOtherFile()
+    return () => { canceled = true }
+  }, [activeFile])
   const [pdfSearchHistory, setPdfSearchHistory] = useState([])
   const [pdfHistoryIndex, setPdfHistoryIndex] = useState(-1)
   const [pdfSearchTab, setPdfSearchTab] = useState('search')
@@ -283,7 +366,7 @@ export default function App() {
     try {
       const storedTab = sessionStorage.getItem('asn_file_list_tab')
       const storedFiles = sessionStorage.getItem('asn_last_selected_files')
-      if (storedTab === 'pdf' || storedTab === 'txt') {
+      if (['pdf','txt','notes','other'].includes(storedTab)) {
         setFileListTab(storedTab)
       }
       if (storedFiles) {
@@ -542,6 +625,21 @@ export default function App() {
         }
       }
 
+      // try to load files under public/other via a manifest
+      try {
+        const ores = await fetch(OTHER_MANIFEST_URL)
+        if (ores.ok) {
+          const of = await ores.json()
+          if (Array.isArray(of) && of.length) {
+            for (const fname of of) {
+              loaded.push({ name: fname, fname, type: 'other', fileUrl: `${OTHER_BASE_URL}/${fname}` })
+            }
+          }
+        }
+      } catch (e) {
+        // ignore missing other manifest
+      }
+
       setFiles(loaded)
       if (loaded.length || storedNotes.length) {
         let preferred
@@ -766,8 +864,8 @@ export default function App() {
     return activeFile.tree ?? []
   }, [activeFile])
 
-  const currentPdfMarks = useMemo(() => {
-    if (!activeFile || activeFile.type !== 'pdf') return []
+  const currentFileMarks = useMemo(() => {
+    if (!activeFile) return []
     return pdfMarks[activeFile.fname] || []
   }, [activeFile, pdfMarks])
 
@@ -1050,7 +1148,7 @@ export default function App() {
   }, [files, notes, fileSearch, fileListTab])
 
   const handleFileListTabChange = (tab) => {
-    if (tab !== 'txt' && tab !== 'pdf' && tab !== 'notes') return
+    if (!['txt','pdf','notes','other'].includes(tab)) return
     setFileListTab(tab)
     if (activeFile?.type !== tab) {
       let preferred = null
@@ -1206,6 +1304,127 @@ export default function App() {
   const nextMatch = () => goToMatch(matchCursor + 1)
   const prevMatch = () => goToMatch(matchCursor - 1)
 
+  // --- Other (text) search & mark utilities ---
+  const addOtherHistoryTerm = (term) => {
+    const normalized = String(term || '').trim()
+    if (!normalized) return
+    setOtherSearchHistory(prev => {
+      const existing = prev.filter(item => item !== normalized)
+      return [normalized, ...existing].slice(0, 20)
+    })
+    setOtherHistoryIndex(0)
+  }
+
+  const handleOtherSearchSubmit = () => {
+    const term = String(otherSearch || '').trim()
+    if (!term) return
+    setOtherSearch(term)
+    addOtherHistoryTerm(term)
+  }
+
+  useEffect(() => {
+    if (!otherFileContent || !otherSearch.trim()) {
+      setOtherSearchResults({ total: 0, lines: [] })
+      setOtherMatchIndex(-1)
+      return
+    }
+    const term = otherSearch.trim().toLowerCase()
+    const lines = otherFileContent.split(/\r?\n/)
+    const resLines = []
+    let total = 0
+    lines.forEach((ln, idx) => {
+      const normalized = ln.toLowerCase()
+      let count = 0
+      let pos = normalized.indexOf(term)
+      while (pos !== -1) {
+        count += 1
+        pos = normalized.indexOf(term, pos + term.length)
+      }
+      if (count > 0) {
+        resLines.push({ line: idx + 1, count, text: ln })
+        total += count
+      }
+    })
+    setOtherSearchResults({ total, lines: resLines })
+    setOtherMatchIndex(total > 0 ? 0 : -1)
+  }, [otherFileContent, otherSearch])
+
+  const getOtherMatchLine = (matchIndex) => {
+    if (!otherSearchResults.total || matchIndex < 0) return 1
+    let cumulative = 0
+    for (const entry of otherSearchResults.lines) {
+      if (matchIndex < cumulative + entry.count) return entry.line
+      cumulative += entry.count
+    }
+    return otherSearchResults.lines[0]?.line || 1
+  }
+
+  const goToOtherMatch = (delta) => {
+    if (!otherSearchResults.total) return
+    const nextIndex = (otherMatchIndex + delta + otherSearchResults.total) % otherSearchResults.total
+    const targetLine = getOtherMatchLine(nextIndex)
+    setOtherMatchIndex(nextIndex)
+    scrollToOtherLine(targetLine)
+  }
+
+  const prevOtherMatch = () => goToOtherMatch(-1)
+  const nextOtherMatch = () => goToOtherMatch(1)
+
+  useEffect(() => {
+    if (otherMatchIndex >= 0 && otherSearchResults.total > 0) {
+      const line = getOtherMatchLine(otherMatchIndex)
+      scrollToOtherLine(line)
+    }
+  }, [otherMatchIndex, otherSearchResults])
+
+  const scrollToOtherLine = (lineNumber) => {
+    const target = document.querySelector(`.other-viewer-wrap [data-line="${Number(lineNumber)}"]`)
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else {
+      const el = document.querySelector('.other-viewer-wrap .code-view, .other-viewer-wrap .note-editor')
+      if (!el) return
+      const style = window.getComputedStyle(el)
+      const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.45 || 18
+      el.scrollTop = Math.max(0, (Number(lineNumber || 1) - 1) * lineHeight)
+    }
+  }
+
+  const handleAddOtherMark = (lineParam) => {
+    if (!activeFile || activeFile.type !== 'other') return
+    const lineNumber = Number(lineParam ?? otherMarkLine) || 1
+    const mark = {
+      id: `${Date.now()}`,
+      line: lineNumber,
+      note: otherMarkNote.trim(),
+      created: new Date().toLocaleString(),
+    }
+    setPdfMarks(prev => ({
+      ...prev,
+      [activeFile.fname]: [...(prev[activeFile.fname] || []), mark],
+    }))
+    setOtherMarkLine('')
+    setOtherMarkNote('')
+  }
+
+  const handleGoToMark = (mark) => {
+    if (!mark) return
+    if (mark.page) {
+      setPdfPage(mark.page)
+      setTimeout(() => scrollToPdfPage(mark.page), 50)
+    } else if (mark.line) {
+      scrollToOtherLine(mark.line)
+    }
+  }
+
+  const handleRemoveMark = (markId) => {
+    if (!activeFile) return
+    setPdfMarks(prev => ({
+      ...prev,
+      [activeFile.fname]: (prev[activeFile.fname] || []).filter(mark => mark.id !== markId),
+    }))
+  }
+
   return (
     <div className="app">
       {copyMessage && (
@@ -1246,6 +1465,13 @@ export default function App() {
             onClick={() => handleFileListTabChange('pdf')}
           >
             PDF files
+          </button>
+          <button
+            type="button"
+            className={`file-filter-tab ${fileListTab === 'other' ? 'active' : ''}`}
+            onClick={() => handleFileListTabChange('other')}
+          >
+            Other
           </button>
           <button
             type="button"
@@ -1290,7 +1516,7 @@ export default function App() {
               }}
             >
               <span className="file-icon">
-                {f.type === 'pdf' ? '📕' : f.type === 'note' ? '📝' : '📄'}
+                {f.type === 'pdf' ? '📕' : f.type === 'note' ? '📝' : f.type === 'other' ? '📁' : '📄'}
               </span>
               <span className="file-name">{f.name}</span>
             </button>
@@ -1428,7 +1654,7 @@ export default function App() {
             <div 
               className="tree-container" 
               ref={containerRef}
-              style={{ paddingRight: showAllComments ? `${overlayWidth + 8}px` : '0' }}
+              style={{ paddingRight: (showAllComments && (activeFile?.type === 'txt' || activeFile?.type === 'other')) ? `${overlayWidth + 8}px` : '0' }}
             >
               {loading ? (
                 <div className="loading">
@@ -1582,6 +1808,83 @@ export default function App() {
                 ) : (
                   <div className="empty">No tree data available for this PDF.</div>
                 )
+              ) : activeFile.type === 'other' ? (
+                <div className="other-viewer-wrap">
+                  <div className="note-editor-header">
+                    <div>
+                      <div className="note-editor-name">{activeFile.name}</div>
+                      <div className="note-editor-sub">File: {activeFile.fname}</div>
+                    </div>
+                    <div className="note-editor-actions">
+                      <button className="btn-copy" type="button" onClick={() => copyText(otherFileContent, 'Content')}>
+                        Copy
+                      </button>
+                      <button className="btn-copy" type="button" onClick={() => { if (activeFile) setActiveFile({ ...activeFile }) }}>
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
+                  {otherLoading ? (
+                    <div className="loading">
+                      <div className="loading-spinner" />
+                      <span>Loading file...</span>
+                    </div>
+                  ) : ((/\.(?:c|h)$/i.test(activeFile.fname)) ? (
+                      <div className="code-view">
+                        {(otherFileContent || '').split(/\r?\n/).map((ln, idx) => {
+                          const lineNum = idx + 1
+                          const term = (otherSearch || '').trim()
+                          let html = ''
+                          if (!term) {
+                            html = highlightLine(ln)
+                          } else {
+                            const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                            const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                            // compute cumulative matches before this line
+                            let cumulative = 0
+                            for (const e of (otherSearchResults.lines || [])) {
+                              if (e.line < lineNum) cumulative += e.count
+                            }
+                            let localIndex = 0
+                            let lastIndex = 0
+                            let m
+                            re.lastIndex = 0
+                            const parts = []
+                            while ((m = re.exec(ln)) !== null) {
+                              const start = m.index
+                              const matchText = m[0]
+                              if (start > lastIndex) {
+                                parts.push(highlightLine(ln.slice(lastIndex, start)))
+                              }
+                              const globalIndex = cumulative + localIndex
+                              const isCurrent = globalIndex === otherMatchIndex
+                              const cls = isCurrent ? 'code-search-current' : 'code-search-highlight'
+                              parts.push(`<span class="${cls}">${esc(matchText)}</span>`)
+                              lastIndex = re.lastIndex
+                              localIndex += 1
+                              // avoid infinite loops
+                              if (re.lastIndex === start) re.lastIndex++
+                            }
+                            if (lastIndex < ln.length) parts.push(highlightLine(ln.slice(lastIndex)))
+                            html = parts.join('')
+                          }
+                          return (
+                            <div key={idx} className={`code-line ${otherMatchIndex >= 0 && otherSearchResults.total ? (otherMatchIndex >= 0 ? (getOtherMatchLine(otherMatchIndex) === lineNum ? 'line-current' : '') : '') : ''}`} data-line={lineNum}>
+                              <div className="code-line-number">{lineNum}</div>
+                              <code className="code-line-content" dangerouslySetInnerHTML={{ __html: html }} />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <textarea
+                        className="note-editor"
+                        value={otherFileContent || ''}
+                        readOnly
+                        placeholder="File content"
+                      />
+                    ))}
+                </div>
               ) : activeFile.type === 'note' ? (
                 <div className="note-editor-wrap">
                   <div className="note-editor-header">
@@ -1654,43 +1957,58 @@ export default function App() {
               >
                 <div
                   className="comment-overlay-inner"
-                  style={{ height: `${commentItems.length * 28 + 8}px` }}
+                  style={{ height: activeFile?.type === 'other' ? 'auto' : `${Math.max(200, commentItems.length * 28 + 8)}px` }}
                 >
-                  {commentItems.map(({ node, index, depth, key, summary }, commentIndex) => {
-                    const nodeKey = key
-                    const structTypeValue = String(node.data?.structType || node.structType || '')
-                    const isRecursive = structTypeValue.toUpperCase() === 'RECURSIVE'
-                    const top = compactComments ? commentIndex * 28 + 8 : index * 28 + 8
-                    const levelNumber = depth + 1
-                    
-                    return (
-                      <div 
-                        key={nodeKey} 
-                        data-node-key={nodeKey}
-                        className={`comment-overlay-item ${selectedNodeId === nodeKey ? 'overlay-selected' : ''} ${matchedCommentSet.has(nodeKey) ? 'overlay-matched' : ''}`}
-                        style={{ top: `${top}px` }}
-                        onClick={e => {
-                          e.stopPropagation()
-                          handleSelectNode(nodeKey, node.name)
-                        }}
-                      >
-                        <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${levelNumber}`}>
-                          {isRecursive ? 'RECUR' : `L${levelNumber}`}
-                        </span>
-                        <button
-                          className="overlay-comment-btn"
-                          type="button"
+                  {activeFile?.type === 'txt' ? (
+                    commentItems.map(({ node, index, depth, key, summary }, commentIndex) => {
+                      const nodeKey = key
+                      const structTypeValue = String(node.data?.structType || node.structType || '')
+                      const isRecursive = structTypeValue.toUpperCase() === 'RECURSIVE'
+                      const top = compactComments ? commentIndex * 28 + 8 : index * 28 + 8
+                      const levelNumber = depth + 1
+                      
+                      return (
+                        <div 
+                          key={nodeKey} 
+                          data-node-key={nodeKey}
+                          className={`comment-overlay-item ${selectedNodeId === nodeKey ? 'overlay-selected' : ''} ${matchedCommentSet.has(nodeKey) ? 'overlay-matched' : ''}`}
+                          style={{ top: `${top}px` }}
                           onClick={e => {
                             e.stopPropagation()
                             handleSelectNode(nodeKey, node.name)
                           }}
                         >
-                          ✎
-                        </button>
-                        <div className="comment-overlay-summary">{summary}</div>
+                          <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${levelNumber}`}>
+                            {isRecursive ? 'RECUR' : `L${levelNumber}`}
+                          </span>
+                          <button
+                            className="overlay-comment-btn"
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              handleSelectNode(nodeKey, node.name)
+                            }}
+                          >
+                            ✎
+                          </button>
+                          <div className="comment-overlay-summary">{summary}</div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    // other file content preview: clickable lines
+                    (otherFileContent || '').split(/\r?\n/).slice(0, 500).map((ln, idx) => (
+                      <div
+                        key={`other-line-${idx+1}`}
+                        className={`comment-overlay-item`}
+                        style={{ position: 'relative', padding: '6px 8px' }}
+                        onClick={e => { e.stopPropagation(); scrollToOtherLine(idx + 1) }}
+                      >
+                        <span className={`overlay-level level-1`} style={{ minWidth: 36 }}>{idx + 1}</span>
+                        <div className="comment-overlay-summary" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{ln.slice(0, 120)}</div>
                       </div>
-                    )
-                  })}
+                    ))
+                  )}
                 </div>
                 <div 
                   className="overlay-resize-handle"
@@ -1755,27 +2073,9 @@ export default function App() {
               {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? (
                 <div className="panel-body pdf-panel-body">
                   <div className="pdf-search-tabs">
-                    <button
-                      type="button"
-                      className={`pdf-tab ${pdfSearchTab === 'search' ? 'active' : ''}`}
-                      onClick={() => setPdfSearchTab('search')}
-                    >
-                      Search
-                    </button>
-                    <button
-                      type="button"
-                      className={`pdf-tab ${pdfSearchTab === 'mark' ? 'active' : ''}`}
-                      onClick={() => setPdfSearchTab('mark')}
-                    >
-                      Mark
-                    </button>
-                    <button
-                      type="button"
-                      className={`pdf-tab ${pdfSearchTab === 'history' ? 'active' : ''}`}
-                      onClick={() => setPdfSearchTab('history')}
-                    >
-                      History
-                    </button>
+                    <button type="button" className={`pdf-tab ${pdfSearchTab === 'search' ? 'active' : ''}`} onClick={() => setPdfSearchTab('search')}>Search</button>
+                    <button type="button" className={`pdf-tab ${pdfSearchTab === 'mark' ? 'active' : ''}`} onClick={() => setPdfSearchTab('mark')}>Mark</button>
+                    <button type="button" className={`pdf-tab ${pdfSearchTab === 'history' ? 'active' : ''}`} onClick={() => setPdfSearchTab('history')}>History</button>
                   </div>
 
                   {pdfSearchTab === 'search' ? (
@@ -1783,67 +2083,31 @@ export default function App() {
                       <div className="comment-field">
                         <label>Search across PDF</label>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input
-                            value={pdfSearch}
-                            onChange={e => setPdfSearch(e.target.value)}
-                            onKeyDown={handlePdfSearchKeyDown}
-                            placeholder="Search all pages..."
-                            style={{ flex: 1 }}
-                          />
-                          <button className="btn-copy" type="button" onClick={handlePdfSearchSubmit} title="Run search">
-                            🔎
-                          </button>
-                          <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear search">
-                            ✕
-                          </button>
+                          <input value={pdfSearch} onChange={e => setPdfSearch(e.target.value)} onKeyDown={handlePdfSearchKeyDown} placeholder="Search all pages..." style={{ flex: 1 }} />
+                          <button className="btn-copy" type="button" onClick={handlePdfSearchSubmit} title="Run search">🔎</button>
+                          <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear search">✕</button>
                         </div>
                         <div className="pdf-search-status" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8, alignItems: 'center' }}>
                           <span>
-                            {pdfSearch.trim()
-                              ? pdfSearchResults.total
-                                ? `Match ${pdfMatchIndex + 1}/${pdfSearchResults.total} on page ${currentPdfMatchPage} — ${pdfSearchResults.total} result${pdfSearchResults.total === 1 ? '' : 's'} across ${pdfSearchResults.pages.length} page${pdfSearchResults.pages.length === 1 ? '' : 's'}`
-                                : 'No results found'
-                              : 'Enter a search term and run search.'}
+                            {pdfSearch.trim() ? (pdfSearchResults.total ? `Match ${pdfMatchIndex + 1}/${pdfSearchResults.total} on page ${currentPdfMatchPage} — ${pdfSearchResults.total} result${pdfSearchResults.total === 1 ? '' : 's'} across ${pdfSearchResults.pages.length} page${pdfSearchResults.pages.length === 1 ? '' : 's'}` : 'No results found') : 'Enter a search term and run search.'}
                           </span>
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn-copy" type="button" onClick={prevPdfMatch} disabled={!pdfSearchResults.total} title="Previous result">
-                              ◀
-                            </button>
-                            <button className="btn-copy" type="button" onClick={nextPdfMatch} disabled={!pdfSearchResults.total} title="Next result">
-                              ▶
-                            </button>
+                            <button className="btn-copy" type="button" onClick={prevPdfMatch} disabled={!pdfSearchResults.total} title="Previous result">◀</button>
+                            <button className="btn-copy" type="button" onClick={nextPdfMatch} disabled={!pdfSearchResults.total} title="Next result">▶</button>
                           </div>
                         </div>
                         <div className="pdf-search-actions">
-                          <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev} title="Previous search term">
-                            ↑
-                          </button>
+                          <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev} title="Previous search term">↑</button>
                           <span>{pdfSearchHistory.length ? `${pdfHistoryIndex + 1}/${pdfSearchHistory.length}` : '0/0'}</span>
-                          <button className="btn-copy" type="button" onClick={handlePdfHistoryNext} title="Next search term">
-                            ↓
-                          </button>
+                          <button className="btn-copy" type="button" onClick={handlePdfHistoryNext} title="Next search term">↓</button>
                         </div>
                       </div>
 
                       <div className="comment-field">
                         <label>Quick Mark Current Search</label>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-                          <input
-                            type="text"
-                            value={pdfMarkNote}
-                            onChange={e => setPdfMarkNote(e.target.value)}
-                            placeholder="Note for this match..."
-                            style={{ flex: 1 }}
-                          />
-                          <button 
-                            className="btn-copy" 
-                            type="button" 
-                            onClick={handleAddPdfMark}
-                            disabled={!pdfSearch.trim()}
-                            title="Mark current search result"
-                          >
-                            📌
-                          </button>
+                          <input type="text" value={pdfMarkNote} onChange={e => setPdfMarkNote(e.target.value)} placeholder="Note for this match..." style={{ flex: 1 }} />
+                          <button className="btn-copy" type="button" onClick={handleAddPdfMark} disabled={!pdfSearch.trim()} title="Mark current search result">📌</button>
                         </div>
                       </div>
                     </>
@@ -1852,52 +2116,23 @@ export default function App() {
                       <div className="comment-field">
                         <label>Add Mark</label>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
-                          <input
-                            type="number"
-                            min="1"
-                            max={pdfTotalPages || 1}
-                            value={pdfMarkPage}
-                            onChange={e => setPdfMarkPage(e.target.value)}
-                            placeholder="Page"
-                            style={{ width: 60 }}
-                          />
-                          <input
-                            type="text"
-                            value={pdfMarkLine}
-                            onChange={e => setPdfMarkLine(e.target.value)}
-                            placeholder="Line (optional)"
-                            style={{ flex: 1 }}
-                          />
+                          <input type="number" min="1" max={pdfTotalPages || 1} value={pdfMarkPage} onChange={e => setPdfMarkPage(e.target.value)} placeholder="Page" style={{ width: 60 }} />
+                          <input type="text" value={pdfMarkLine} onChange={e => setPdfMarkLine(e.target.value)} placeholder="Line (optional)" style={{ flex: 1 }} />
                         </div>
-                        <input
-                          type="text"
-                          value={pdfMarkNote}
-                          onChange={e => setPdfMarkNote(e.target.value)}
-                          placeholder="Note..."
-                          style={{ width: '100%', marginBottom: 10 }}
-                        />
-                        <button className="btn-copy" type="button" onClick={handleAddPdfMark} style={{ width: '100%' }}>
-                          ✓ Add Mark
-                        </button>
+                        <input type="text" value={pdfMarkNote} onChange={e => setPdfMarkNote(e.target.value)} placeholder="Note..." style={{ width: '100%', marginBottom: 10 }} />
+                        <button className="btn-copy" type="button" onClick={handleAddPdfMark} style={{ width: '100%' }}>✓ Add Mark</button>
                       </div>
 
-                      {currentPdfMarks.length ? (
+                      {currentFileMarks.length ? (
                         <div className="pdf-mark-list">
-                          {currentPdfMarks.map(mark => (
-                            <div key={mark.id} className="pdf-mark-item" onClick={() => handleGoToPdfMark(mark.page)} style={{ cursor: 'pointer' }}>
+                          {currentFileMarks.map(mark => (
+                            <div key={mark.id} className="pdf-mark-item" onClick={() => handleGoToMark(mark)} style={{ cursor: 'pointer' }}>
                               <div>
-                                <strong>Page {mark.page}</strong>
-                                {mark.line ? <div className="pdf-mark-line">{mark.line}</div> : null}
+                                {mark.page ? <strong>Page {mark.page}</strong> : <strong>Line {mark.line}</strong>}
+                                {mark.line && mark.page ? <div className="pdf-mark-line">{mark.line}</div> : null}
                                 {mark.note ? <div className="pdf-mark-note">{mark.note}</div> : null}
                               </div>
-                              <button 
-                                className="btn-copy icon-only" 
-                                type="button" 
-                                onClick={(e) => { e.stopPropagation(); handleRemovePdfMark(mark.id) }} 
-                                title="Remove mark"
-                              >
-                                ✕
-                              </button>
+                              <button className="btn-copy icon-only" type="button" onClick={(e) => { e.stopPropagation(); handleRemoveMark(mark.id) }} title="Remove mark">✕</button>
                             </div>
                           ))}
                         </div>
@@ -1916,19 +2151,101 @@ export default function App() {
                           </div>
                           <div className="pdf-history-list">
                             {pdfSearchHistory.map((term, index) => (
-                              <button
-                                key={term}
-                                type="button"
-                                className={`pdf-history-item ${index === pdfHistoryIndex ? 'active' : ''}`}
-                                onClick={() => handlePdfHistorySelect(index)}
-                              >
-                                {term}
-                              </button>
+                              <button key={term} type="button" className={`pdf-history-item ${index === pdfHistoryIndex ? 'active' : ''}`} onClick={() => handlePdfHistorySelect(index)}>{term}</button>
                             ))}
                           </div>
                         </>
                       ) : (
                         <div className="panel-empty">No PDF search history yet. Run a search to save terms.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : activeFile?.type === 'other' ? (
+                <div className="panel-body pdf-panel-body">
+                  <div className="pdf-search-tabs">
+                    <button type="button" className={`pdf-tab ${otherSearchTab === 'search' ? 'active' : ''}`} onClick={() => setOtherSearchTab('search')}>Search</button>
+                    <button type="button" className={`pdf-tab ${otherSearchTab === 'mark' ? 'active' : ''}`} onClick={() => setOtherSearchTab('mark')}>Mark</button>
+                    <button type="button" className={`pdf-tab ${otherSearchTab === 'history' ? 'active' : ''}`} onClick={() => setOtherSearchTab('history')}>History</button>
+                  </div>
+
+                  {otherSearchTab === 'search' ? (
+                    <>
+                      <div className="comment-field">
+                        <label>Search across file</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input value={otherSearch} onChange={e => setOtherSearch(e.target.value)} placeholder="Search all lines..." style={{ flex: 1 }} />
+                          <button className="btn-copy" type="button" onClick={handleOtherSearchSubmit} title="Run search">🔎</button>
+                          <button className="btn-copy" type="button" onClick={() => setOtherSearch('')} title="Clear search">✕</button>
+                        </div>
+                        <div className="pdf-search-status" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                          <span>
+                            {otherSearch.trim() ? (otherSearchResults.total ? `Match ${otherMatchIndex + 1}/${otherSearchResults.total} — ${otherSearchResults.total} result${otherSearchResults.total === 1 ? '' : 's'} across ${otherSearchResults.lines.length} line${otherSearchResults.lines.length === 1 ? '' : 's'}` : 'No results found') : 'Enter a search term and run search.'}
+                          </span>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="btn-copy" type="button" onClick={prevOtherMatch} disabled={!otherSearchResults.total} title="Previous result">◀</button>
+                            <button className="btn-copy" type="button" onClick={nextOtherMatch} disabled={!otherSearchResults.total} title="Next result">▶</button>
+                          </div>
+                        </div>
+                        <div className="pdf-search-actions">
+                          <button className="btn-copy" type="button" onClick={() => { if (otherSearchHistory.length) setOtherHistoryIndex((otherHistoryIndex > 0) ? otherHistoryIndex - 1 : otherSearchHistory.length - 1); }} title="Previous search term">↑</button>
+                          <span>{otherSearchHistory.length ? `${otherHistoryIndex + 1}/${otherSearchHistory.length}` : '0/0'}</span>
+                          <button className="btn-copy" type="button" onClick={() => { if (otherSearchHistory.length) setOtherHistoryIndex((otherHistoryIndex < 0 || otherHistoryIndex === otherSearchHistory.length - 1) ? 0 : otherHistoryIndex + 1); }} title="Next search term">↓</button>
+                        </div>
+                      </div>
+
+                      <div className="comment-field">
+                        <label>Quick Mark Current Line</label>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+                          <input type="text" value={otherMarkNote} onChange={e => setOtherMarkNote(e.target.value)} placeholder="Note for this match..." style={{ flex: 1 }} />
+                          <button className="btn-copy" type="button" onClick={() => { const line = getOtherMatchLine(otherMatchIndex); handleAddOtherMark(line); }} disabled={!otherSearch.trim()} title="Mark current search result">📌</button>
+                        </div>
+                      </div>
+                    </>
+                  ) : otherSearchTab === 'mark' ? (
+                    <div className="pdf-mark-panel">
+                      <div className="comment-field">
+                        <label>Add Mark</label>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+                          <input type="number" min="1" value={otherMarkLine} onChange={e => setOtherMarkLine(e.target.value)} placeholder="Line" style={{ width: 80 }} />
+                        </div>
+                        <input type="text" value={otherMarkNote} onChange={e => setOtherMarkNote(e.target.value)} placeholder="Note..." style={{ width: '100%', marginBottom: 10 }} />
+                        <button className="btn-copy" type="button" onClick={handleAddOtherMark} style={{ width: '100%' }}>✓ Add Mark</button>
+                      </div>
+
+                      {currentFileMarks.length ? (
+                        <div className="pdf-mark-list">
+                          {currentFileMarks.map(mark => (
+                            <div key={mark.id} className="pdf-mark-item" onClick={() => handleGoToMark(mark)} style={{ cursor: 'pointer' }}>
+                              <div>
+                                {mark.line ? <strong>Line {mark.line}</strong> : null}
+                                {mark.note ? <div className="pdf-mark-note">{mark.note}</div> : null}
+                              </div>
+                              <button className="btn-copy icon-only" type="button" onClick={(e) => { e.stopPropagation(); handleRemoveMark(mark.id) }} title="Remove mark">✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="panel-empty">No marks yet. Add one to pin locations in this file.</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="pdf-history-panel">
+                      {otherSearchHistory.length ? (
+                        <>
+                          <div className="pdf-history-buttons">
+                            <button className="btn-copy" type="button" onClick={() => { if (otherSearchHistory.length) setOtherHistoryIndex((otherHistoryIndex > 0) ? otherHistoryIndex - 1 : otherSearchHistory.length - 1); }}>Prev</button>
+                            <button className="btn-copy" type="button" onClick={() => { if (otherSearchHistory.length) setOtherHistoryIndex((otherHistoryIndex < 0 || otherHistoryIndex === otherSearchHistory.length - 1) ? 0 : otherHistoryIndex + 1); }}>Next</button>
+                            <button className="btn-copy" type="button" onClick={() => { setOtherSearchHistory([]); setOtherHistoryIndex(-1); }}>Clear</button>
+                          </div>
+                          <div className="pdf-history-list">
+                            {otherSearchHistory.map((term, index) => (
+                              <button key={term} type="button" className={`pdf-history-item ${index === otherHistoryIndex ? 'active' : ''}`} onClick={() => { setOtherSearch(term); setOtherHistoryIndex(index); }}>{term}</button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="panel-empty">No search history yet. Run a search to save terms.</div>
                       )}
                     </div>
                   )}
