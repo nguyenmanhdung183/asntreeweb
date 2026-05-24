@@ -12,6 +12,9 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
   const isLeaf = !node.data.children?.length
   const hasChildren = !isLeaf
   const summary = comment?.summary?.trim()
+  const rawStructType = String(node.data?.structType || node.structType || '').trim()
+  const structTypeLabel = rawStructType ? abbreviateStructType(rawStructType) : ''
+  const structTypeStyle = rawStructType ? getStructTypeStyle(rawStructType) : {}
   
   // Display name based on mode
   let displayName = node.data.name
@@ -30,6 +33,17 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
         onSelect(node.data.id, node.data.name)
       }}
     >
+      <button
+        className="comment-open"
+        type="button"
+        onClick={e => {
+          e.stopPropagation()
+          onSelect(node.data.id, node.data.name)
+        }}
+        title="View comment details"
+      >
+        View
+      </button>
       <span className="indent-guide" style={{ width: node.level * 24 }} />
 
       <span className="node-toggle">
@@ -42,31 +56,11 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 
       <span className="node-index">#{rowIndex}</span>
       <span className="node-name">{displayName}</span>
-      <button
-        className="node-close-btn"
-        type="button"
-        onClick={e => {
-          e.stopPropagation()
-          try { node.close() } catch (err) { node.toggle() }
-        }}
-        title="Close this node"
-      >
-        ⊖
-      </button>
-          {String(node.data?.structType || node.structType || '').toUpperCase() === 'RECURSIVE' && (
-            <span className="node-recursive-badge">RECUR</span>
-          )}
-
-      {/* <button
-        className="comment-open"
-        type="button"
-        onClick={e => {
-          e.stopPropagation()
-          onSelect(node.data.id, node.data.name)
-        }}
-      >
-        {summary ? '💬' : '✎'}
-      </button> */}
+      {structTypeLabel && (
+        <span className="node-struct-badge" style={structTypeStyle} title={rawStructType}>
+          {structTypeLabel}
+        </span>
+      )}
 
       {hasChildren && (
         <span className="node-badge">{node.data.children.length}</span>
@@ -77,6 +71,49 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 
 // ─── API Endpoints ────────────────────────────────────────────────────────────
 const COMMENTS_API = import.meta.env.VITE_COMMENTS_API || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? 'https://asntreeweb.nguyendung010803.workers.dev/api/comments' : '/api/comments')
+
+const STRUCT_TYPE_PALETTE = [
+  { color: '#22c55e', background: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.2)' },
+  { color: '#0ea5e9', background: 'rgba(14,165,233,0.12)', border: 'rgba(14,165,233,0.2)' },
+  { color: '#f97316', background: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.2)' },
+  { color: '#a855f7', background: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.2)' },
+  { color: '#ec4899', background: 'rgba(236,72,153,0.12)', border: 'rgba(236,72,153,0.2)' },
+  { color: '#16a34a', background: 'rgba(22,163,74,0.12)', border: 'rgba(22,163,74,0.2)' },
+  { color: '#facc15', background: 'rgba(250,204,21,0.12)', border: 'rgba(250,204,21,0.2)' },
+]
+
+const STRUCT_TYPE_COLORS = {
+  RECURSIVE: STRUCT_TYPE_PALETTE[0],
+  SEQUENCE: STRUCT_TYPE_PALETTE[2],
+  SEQUENCEOFITEM: STRUCT_TYPE_PALETTE[5],
+  SEQUENCEOFSTRUCTURE: STRUCT_TYPE_PALETTE[3],
+  CHOICE: STRUCT_TYPE_PALETTE[1],
+  SET: STRUCT_TYPE_PALETTE[4],
+}
+
+function getStructTypeStyle(type) {
+  const normalized = String(type || '').trim().toUpperCase()
+  if (!normalized) return {}
+  if (STRUCT_TYPE_COLORS[normalized]) return STRUCT_TYPE_COLORS[normalized]
+  const hash = Array.from(normalized).reduce((acc, ch) => ((acc * 31 + ch.charCodeAt(0)) >>> 0), 0)
+  return STRUCT_TYPE_PALETTE[hash % STRUCT_TYPE_PALETTE.length]
+}
+
+function abbreviateStructType(type) {
+  const raw = String(type || '').trim().toUpperCase()
+  if (!raw) return ''
+  const words = raw
+    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ')
+    .replace(/OF/g, ' OF ')
+    .split(/[^A-Z0-9]+/)
+    .filter(Boolean)
+
+  if (words.length <= 1) {
+    return raw.slice(0, 3)
+  }
+
+  return words.map(w => w[0]).join('').slice(0, 3)
+}
 
 // Load comments from Cloudflare KV
 async function loadCommentsFromAPI() {
@@ -143,7 +180,7 @@ export default function App() {
   const [comments, setComments] = useState({})
   const [searchComment, setSearchComment] = useState('')
   const [showAllComments, setShowAllComments] = useState(true)
-  const [compactComments, setCompactComments] = useState(false)
+  const [compactComments, setCompactComments] = useState(true)
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(264)

@@ -419,18 +419,27 @@
 }
 
 .comment-open {
-  border: none;
-  background: transparent;
-  color: var(--accent2);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
   cursor: pointer;
-  font-size: 15px;
-  padding: 0 6px;
-  margin-left: 8px;
+  font-size: 10px;
+  padding: 0 10px;
+  border-radius: 6px;
+  transition: all 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  min-width: 50px;
+  height: 100%;
+  margin-right: 8px;
 }
 
 .comment-open:hover {
-  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--text);
+  border-color: var(--accent);
 }
 
 /* Fixed comment overlay column */
@@ -726,7 +735,7 @@
   display: flex;
   align-items: center;
   min-height: 28px;
-  padding-right: 16px;
+  padding: 0 16px 0 74px;
   cursor: default;
   border-radius: 0;
   user-select: none;
@@ -734,6 +743,33 @@
   position: relative;
   gap: 6px;
   min-width: max-content;
+}
+
+.comment-open {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 10px;
+  border-radius: 6px;
+  transition: all 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 52px;
+  height: 22px;
+}
+
+.comment-open:hover {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--text);
+  border-color: var(--accent);
 }
 
 .tree-node:hover { background: var(--hover); }
@@ -890,18 +926,20 @@
   flex-shrink: 0;
 }
 
-.node-close-btn {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 5px;
+.node-struct-badge {
   margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  white-space: nowrap;
 }
-
-.node-close-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
 
 .search-wrap.comment-search { margin-top: 8px; }
 
