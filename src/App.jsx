@@ -13,8 +13,10 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
   const hasChildren = !isLeaf
   const summary = comment?.summary?.trim()
   const rawStructType = String(node.data?.structType || node.structType || '').trim()
-  const structTypeLabel = rawStructType ? abbreviateStructType(rawStructType) : ''
-  const structTypeStyle = rawStructType ? getStructTypeStyle(rawStructType) : {}
+  const rawType = String(node.data?.type || node.type || '').trim()
+  const badgeSource = rawStructType || rawType
+  const badgeLabel = badgeSource ? abbreviateType(badgeSource) : ''
+  const badgeStyle = badgeSource ? getTypeStyle(badgeSource) : {}
   
   // Display name based on mode
   let displayName = node.data.name
@@ -27,7 +29,7 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
       id={`node-${String(nodeKey).replace(/[:\/\s]/g, '-')}`}
       ref={dragHandle}
       style={style}
-      className={`tree-node level-${node.level} ${selected ? 'selected' : ''} ${isLeaf ? 'leaf' : 'folder'} ${isMatched ? 'matched' : ''} ${matchedName ? 'matched-name' : ''} ${matchedComment ? 'matched-comment' : ''} ${matchedName && matchedComment ? 'matched-both' : ''}`}
+      className={`tree-node level-${node.level + 1} ${selected ? 'selected' : ''} ${isLeaf ? 'leaf' : 'folder'} ${isMatched ? 'matched' : ''} ${matchedName ? 'matched-name' : ''} ${matchedComment ? 'matched-comment' : ''} ${matchedName && matchedComment ? 'matched-both' : ''}`}
       onClick={() => {
         if (hasChildren) node.toggle()
         onSelect(node.data.id, node.data.name)
@@ -56,15 +58,14 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 
       <span className="node-index">#{rowIndex}</span>
       <span className="node-name">{displayName}</span>
-      {structTypeLabel && (
-        <span className="node-struct-badge" style={structTypeStyle} title={rawStructType}>
-          {structTypeLabel}
+      {badgeLabel && (
+        <span className="node-struct-badge" style={badgeStyle} title={badgeSource}>
+          {badgeLabel}
         </span>
       )}
-
-      {hasChildren && (
-        <span className="node-badge">{node.data.children.length}</span>
-      )}
+      <span className="node-badge" title={`Level ${node.level + 1}`}>
+        L{node.level + 1}
+      </span>
     </div>
   )
 }
@@ -89,9 +90,14 @@ const STRUCT_TYPE_COLORS = {
   SEQUENCEOFSTRUCTURE: STRUCT_TYPE_PALETTE[3],
   CHOICE: STRUCT_TYPE_PALETTE[1],
   SET: STRUCT_TYPE_PALETTE[4],
+  INTEGER: STRUCT_TYPE_PALETTE[6],
+  BOOLEAN: STRUCT_TYPE_PALETTE[1],
+  ENUMERATED: STRUCT_TYPE_PALETTE[3],
+  OCTETSTRING: STRUCT_TYPE_PALETTE[5],
+  IA5STRING: STRUCT_TYPE_PALETTE[0],
 }
 
-function getStructTypeStyle(type) {
+function getTypeStyle(type) {
   const normalized = String(type || '').trim().toUpperCase()
   if (!normalized) return {}
   if (STRUCT_TYPE_COLORS[normalized]) return STRUCT_TYPE_COLORS[normalized]
@@ -99,7 +105,7 @@ function getStructTypeStyle(type) {
   return STRUCT_TYPE_PALETTE[hash % STRUCT_TYPE_PALETTE.length]
 }
 
-function abbreviateStructType(type) {
+function abbreviateType(type) {
   const raw = String(type || '').trim().toUpperCase()
   if (!raw) return ''
   const words = raw
@@ -834,6 +840,7 @@ export default function App() {
                     const structTypeValue = String(node.data?.structType || node.structType || '')
                     const isRecursive = structTypeValue.toUpperCase() === 'RECURSIVE'
                     const top = compactComments ? commentIndex * 28 + 8 : index * 28 + 8
+                    const levelNumber = depth + 1
                     
                     return (
                       <div 
@@ -846,8 +853,8 @@ export default function App() {
                           handleSelectNode(nodeKey, node.name)
                         }}
                       >
-                        <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${depth}`}>
-                          {isRecursive ? 'RECUR' : `L${depth}`}
+                        <span className={`overlay-level ${isRecursive ? 'recursive' : ''} level-${levelNumber}`}>
+                          {isRecursive ? 'RECUR' : `L${levelNumber}`}
                         </span>
                         <button
                           className="overlay-comment-btn"
