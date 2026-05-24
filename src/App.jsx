@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Tree } from 'react-arborist'
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf'
+import pdfjsWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url'
 import { parseTxtToTree } from './parser.js'
 import './App.css'
+
+GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
 // ─── file manifest (auto: public/data/manifest.json preferred) ─────────
 const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
@@ -236,14 +240,34 @@ export default function App() {
   const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '', notes: '' })
   const [pdfSearch, setPdfSearch] = useState('')
   const [pdfPage, setPdfPage] = useState(1)
+  const [pdfMarkPage, setPdfMarkPage] = useState('')
   const [pdfLine, setPdfLine] = useState('')
+  const [pdfMarkLine, setPdfMarkLine] = useState('')
+  const [pdfMarkNote, setPdfMarkNote] = useState('')
   const [pdfMarks, setPdfMarks] = useState({})
   const [pdfSearchHistory, setPdfSearchHistory] = useState([])
   const [pdfHistoryIndex, setPdfHistoryIndex] = useState(-1)
   const [pdfSearchTab, setPdfSearchTab] = useState('search')
+  const [pdfDoc, setPdfDoc] = useState(null)
+  const [pdfTotalPages, setPdfTotalPages] = useState(0)
+  const [pdfScale, setPdfScale] = useState(1.0)
+  const [pdfPageViewports, setPdfPageViewports] = useState({})
+  const [pdfTextPages, setPdfTextPages] = useState([])
+  const [pdfSearchResults, setPdfSearchResults] = useState({ total: 0, pages: [] })
+  const [pdfMatchIndex, setPdfMatchIndex] = useState(-1)
   const [panelWidth, setPanelWidth] = useState(320)
+  const pdfCanvasRef = useRef(null)
+  const pdfTextLayerRef = useRef(null)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(264)
+  const pdfCanvasRefs = useRef({})
+  const pdfPageRefs = useRef({})
+  const scrollToPdfPage = useCallback((pageNum) => {
+    const target = pdfPageRefs.current[pageNum]
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
   const [isDraggingSidebar, setIsDraggingSidebar] = useState(false)
   const [displayMode, setDisplayMode] = useState('varname') // 'varname' or 'type'
   const [overlayWidth, setOverlayWidth] = useState(220)
@@ -635,9 +659,12 @@ export default function App() {
   }
 
   const handlePdfSearchKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handlePdfSearchSubmit()
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (e.shiftKey) {
+      prevPdfMatch()
+    } else {
+      nextPdfMatch()
     }
   }
 
@@ -757,20 +784,244 @@ export default function App() {
     return params.length ? `${baseUrl}#${params.join('&')}` : baseUrl
   }, [activeFile, pdfSearch, pdfPage])
 
+  useEffect(() => {
+    if (!activeFile || activeFile.type !== 'pdf') {
+      setPdfDoc(null)
+      setPdfTextPages([])
+      setPdfSearchResults({ total: 0, pages: [] })
+      setPdfMatchIndex(-1)
+      setPdfPageViewports({})
+      return
+    }
+
+    let cancelled = false
+    async function loadPdfTextPages() {
+      try {
+        const loadingTask = getDocument(activeFile.pdfUrl)
+        const pdf = await loadingTask.promise
+        if (cancelled) {
+          pdf.destroy?.()
+          return
+        }
+        const pages = []
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+          const page = await pdf.getPage(pageNum)
+          const content = await page.getTextContent()
+          const text = content.items.map(item => item.str).join(' ')
+          pages.push({ page: pageNum, text, items: content.items })
+        }
+        if (cancelled) {
+          pdf.destroy?.()
+          return
+        }
+        setPdfDoc(pdf)
+        setPdfTotalPages(pdf.numPages)
+        setPdfTextPages(pages)
+      } catch (e) {
+        console.warn('Could not load PDF text for search:', e)
+        if (!cancelled) {
+          setPdfDoc(null)
+          setPdfTextPages([])
+          setPdfSearchResults({ total: 0, pages: [] })
+          setPdfMatchIndex(-1)
+          setPdfPageViewports({})
+        }
+      }
+    }
+
+    loadPdfTextPages()
+    return () => {
+      cancelled = true
+    }
+  }, [activeFile])
+
+  useEffect(() => {
+    if (!activeFile || activeFile.type !== 'pdf' || !pdfSearch.trim() || pdfTextPages.length === 0) {
+      setPdfSearchResults({ total: 0, pages: [] })
+      setPdfMatchIndex(-1)
+      return
+    }
+
+    const term = pdfSearch.trim().toLowerCase()
+    const pages = []
+    let total = 0
+
+    pdfTextPages.forEach((pageInfo) => {
+      const normalized = pageInfo.text.toLowerCase()
+      let count = 0
+      let pos = normalized.indexOf(term)
+      while (pos !== -1) {
+        count += 1
+        pos = normalized.indexOf(term, pos + term.length)
+      }
+      if (count > 0) {
+        pages.push({ page: pageInfo.page, count })
+        total += count
+      }
+    })
+
+    setPdfSearchResults({ total, pages })
+    setPdfMatchIndex(total > 0 ? 0 : -1)
+  }, [activeFile, pdfSearch, pdfTextPages])
+
+  const getPdfMatchPage = (matchIndex) => {
+    if (!pdfSearchResults.total || matchIndex < 0) return pdfPage
+    let cumulative = 0
+    for (const page of pdfSearchResults.pages) {
+      if (matchIndex < cumulative + page.count) {
+        return page.page
+      }
+      cumulative += page.count
+    }
+    return pdfSearchResults.pages[0]?.page || pdfPage
+  }
+
+  const getPdfMatchIndexOnPage = (globalMatchIndex) => {
+    if (!pdfSearchResults.total || globalMatchIndex < 0) return -1
+    let cumulative = 0
+    for (const page of pdfSearchResults.pages) {
+      if (globalMatchIndex < cumulative + page.count) {
+        return globalMatchIndex - cumulative
+      }
+      cumulative += page.count
+    }
+    return -1
+  }
+
+  const goToPdfMatch = (delta) => {
+    if (!pdfSearchResults.total) return
+    const nextIndex = (pdfMatchIndex + delta + pdfSearchResults.total) % pdfSearchResults.total
+    const targetPage = getPdfMatchPage(nextIndex)
+    setPdfMatchIndex(nextIndex)
+    setPdfPage(targetPage)
+  }
+
+  const prevPdfMatch = () => goToPdfMatch(-1)
+  const nextPdfMatch = () => goToPdfMatch(1)
+
+  const goPdfPage = (delta) => {
+    if (!pdfDoc) return
+    const current = Number(pdfPage) || 1
+    const total = pdfTotalPages || pdfDoc.numPages || 1
+    const next = Math.max(1, Math.min(total, current + delta))
+    if (next !== current) {
+      setPdfPage(next)
+    }
+  }
+
+  const prevPdfPage = () => goPdfPage(-1)
+  const nextPdfPage = () => goPdfPage(1)
+
+  const currentPdfMatchPage = pdfMatchIndex >= 0 ? getPdfMatchPage(pdfMatchIndex) : null
+
+  const pdfPageHighlights = useMemo(() => {
+    if (!pdfSearch.trim() || !pdfTextPages.length) return {}
+    const term = pdfSearch.trim().toLowerCase()
+    return pdfTextPages.reduce((map, pageInfo) => {
+      const viewport = pdfPageViewports[pageInfo.page]
+      if (!viewport) return map
+      const matches = pageInfo.items.reduce((matchesForPage, item, index) => {
+        const text = String(item.str || '')
+        const normalized = text.toLowerCase()
+        if (!normalized.includes(term)) return matchesForPage
+        const x = item.transform?.[4] || 0
+        const y = item.transform?.[5] || 0
+        const width = item.width || 0
+        const height = item.height || 0
+        const rect = viewport.convertToViewportRectangle([x, y, x + width, y + height])
+        const left = Math.min(rect[0], rect[2])
+        const top = Math.min(rect[1], rect[3])
+        const w = Math.abs(rect[2] - rect[0])
+        const h = Math.abs(rect[3] - rect[1])
+        if (w <= 0 || h <= 0) return matchesForPage
+        matchesForPage.push({ left, top, width: w, height: h, key: `${pageInfo.page}-${index}` })
+        return matchesForPage
+      }, [])
+      if (matches.length) {
+        map[pageInfo.page] = matches
+      }
+      return map
+    }, {})
+  }, [pdfSearch, pdfPageViewports, pdfTextPages])
+
+  useEffect(() => {
+    if (pdfMatchIndex >= 0 && pdfSearchResults.total > 0) {
+      const page = getPdfMatchPage(pdfMatchIndex)
+      setPdfPage(page)
+    }
+  }, [pdfMatchIndex, pdfSearchResults])
+
+  useEffect(() => {
+    if (!pdfDoc || !activeFile || activeFile.type !== 'pdf') return
+    const pageNumber = Number(pdfPage) || 1
+    if (pageNumber >= 1 && pageNumber <= (pdfTotalPages || pdfDoc.numPages)) {
+      scrollToPdfPage(pageNumber)
+    }
+  }, [pdfPage, pdfDoc, pdfTotalPages, activeFile, scrollToPdfPage])
+
+  useEffect(() => {
+    if (!pdfDoc || !activeFile || activeFile.type !== 'pdf') {
+      return
+    }
+
+    let cancelled = false
+    async function renderPdfPages() {
+      try {
+        const viewports = {}
+        const renderTasks = []
+        const total = pdfTotalPages || pdfDoc.numPages
+
+        for (let pageNum = 1; pageNum <= total; pageNum += 1) {
+          const page = await pdfDoc.getPage(pageNum)
+          const viewport = page.getViewport({ scale: pdfScale })
+          viewports[pageNum] = viewport
+
+          const canvas = pdfCanvasRefs.current[pageNum]
+          if (!canvas) continue
+
+          const context = canvas.getContext('2d')
+          const devicePixelRatio = window.devicePixelRatio || 1
+          canvas.width = Math.floor(viewport.width * devicePixelRatio)
+          canvas.height = Math.floor(viewport.height * devicePixelRatio)
+          canvas.style.width = `${viewport.width}px`
+          canvas.style.height = `${viewport.height}px`
+          context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
+          
+          renderTasks.push(page.render({ canvasContext: context, viewport }).promise)
+        }
+
+        await Promise.all(renderTasks)
+        if (cancelled) return
+        setPdfPageViewports(viewports)
+      } catch (e) {
+        console.warn('Failed to render PDF pages:', e)
+      }
+    }
+
+    renderPdfPages()
+    return () => {
+      cancelled = true
+    }
+  }, [pdfDoc, pdfScale, pdfTotalPages, activeFile])
+
   const handleAddPdfMark = () => {
     if (!activeFile || activeFile.type !== 'pdf') return
-    const pageNumber = Number(pdfPage) || 1
+    const pageNumber = Number(pdfMarkPage) || Number(pdfPage) || 1
+    if (pageNumber < 1 || pageNumber > (pdfTotalPages || 1)) return
     const mark = {
       id: `${Date.now()}`,
       page: pageNumber,
-      line: pdfLine.trim(),
+      line: pdfMarkLine.trim(),
+      note: pdfMarkNote.trim(),
       created: new Date().toLocaleString(),
     }
     setPdfMarks(prev => ({
       ...prev,
       [activeFile.fname]: [...(prev[activeFile.fname] || []), mark],
     }))
-    setPdfLine('')
+    setPdfMarkPage('')
+    setPdfMarkLine('')
+    setPdfMarkNote('')
   }
 
   const handleRemovePdfMark = markId => {
@@ -779,6 +1030,11 @@ export default function App() {
       ...prev,
       [activeFile.fname]: (prev[activeFile.fname] || []).filter(mark => mark.id !== markId),
     }))
+  }
+
+  const handleGoToPdfMark = (markPage) => {
+    setPdfPage(markPage)
+    setTimeout(() => scrollToPdfPage(markPage), 50)
   }
 
   // Filter files based on file search
@@ -1078,7 +1334,7 @@ export default function App() {
       {/* ── Main panel ── */}
       <main className="main">
         {/* Toolbar */}
-        {activeFile?.type !== 'note' && (
+        {activeFile?.type === 'txt' && (
         <div className="toolbar">
           <div className="toolbar-left">
             <span className="breadcrumb">
@@ -1183,11 +1439,109 @@ export default function App() {
                 <div className="empty">Select a file to view</div>
               ) : activeFile.type === 'pdf' ? (
                 fileViewMode === 'pdf' ? (
-                  <iframe
-                    className="pdf-viewer"
-                    title={activeFile.name}
-                    src={pdfViewerUrl}
-                  />
+                  <div className="pdf-canvas-area">
+                    <div className="pdf-view-controls">
+                      <div className="pdf-nav-group">
+                        <button className="btn-copy" type="button" onClick={prevPdfPage} disabled={Number(pdfPage) <= 1} title="Previous page">
+                          ◀ Prev
+                        </button>
+                        <div className="pdf-page-jumper">
+                          <input 
+                            type="number" 
+                            min="1" 
+                            max={pdfTotalPages || 1}
+                            value={Number(pdfPage) || 1}
+                            onChange={(e) => {
+                              const val = Math.max(1, Math.min(pdfTotalPages || 1, parseInt(e.target.value) || 1))
+                              setPdfPage(val)
+                              setTimeout(() => scrollToPdfPage(val), 50)
+                            }}
+                            className="pdf-page-input"
+                          />
+                          <span className="pdf-page-total">/ {pdfTotalPages || '...'}</span>
+                        </div>
+                        <button className="btn-copy" type="button" onClick={nextPdfPage} disabled={pdfTotalPages && Number(pdfPage) >= pdfTotalPages} title="Next page">
+                          Next ▶
+                        </button>
+                      </div>
+
+                      <div className="pdf-search-box">
+                        <input
+                          value={pdfSearch}
+                          onChange={e => setPdfSearch(e.target.value)}
+                          onKeyDown={handlePdfSearchKeyDown}
+                          placeholder="🔎 Search pages..."
+                          className="pdf-search-input"
+                        />
+                        <button className="btn-copy" type="button" onClick={handlePdfSearchSubmit} title="Search">
+                          🔍
+                        </button>
+                        <span className="pdf-search-count">
+                          {pdfSearchResults.total ? `${pdfMatchIndex + 1}/${pdfSearchResults.total}` : '0'}
+                        </span>
+                        <button className="btn-copy" type="button" onClick={prevPdfMatch} disabled={!pdfSearchResults.total} title="Previous match">
+                          ◀
+                        </button>
+                        <button className="btn-copy" type="button" onClick={nextPdfMatch} disabled={!pdfSearchResults.total} title="Next match">
+                          ▶
+                        </button>
+                        <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear">
+                          ✕
+                        </button>
+                      </div>
+
+                      <div className="pdf-zoom-group">
+                        <button className="btn-copy" type="button" onClick={() => setPdfScale(0.6)} title="Fit to width">
+                          📄 Fit
+                        </button>
+                        <button className="btn-copy" type="button" onClick={() => setPdfScale(prev => Math.max(0.5, Math.round((prev - 0.1) * 10) / 10))} title="Zoom out">
+                          −
+                        </button>
+                        <span className="pdf-zoom-display">{Math.round(pdfScale * 100)}%</span>
+                        <button className="btn-copy" type="button" onClick={() => setPdfScale(prev => Math.min(3, Math.round((prev + 0.1) * 10) / 10))} title="Zoom in">
+                          +
+                        </button>
+                        <button className="btn-copy" type="button" onClick={() => setPdfScale(1)} title="Reset zoom">
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                    {(pdfTextPages || []).map(pageInfo => {
+                      const viewport = pdfPageViewports[pageInfo.page]
+                      const highlights = pdfPageHighlights[pageInfo.page] || []
+                      const currentMatchPage = pdfMatchIndex >= 0 ? getPdfMatchPage(pdfMatchIndex) : null
+                      const currentMatchIndexOnPage = currentMatchPage === pageInfo.page ? getPdfMatchIndexOnPage(pdfMatchIndex) : -1
+                      return (
+                        <div
+                          key={pageInfo.page}
+                          className="pdf-page"
+                          ref={el => { pdfPageRefs.current[pageInfo.page] = el }}
+                        >
+                          <div className="pdf-page-header">Page {pageInfo.page}</div>
+                          <div className="pdf-page-canvas" style={{ width: viewport?.width || 800, height: viewport?.height || 1000 }}>
+                            <canvas ref={el => { pdfCanvasRefs.current[pageInfo.page] = el }} className="pdf-canvas" />
+                            <div className="pdf-text-layer" style={{ width: viewport?.width || 800, height: viewport?.height || 1000 }}>
+                              {highlights.map((item, idx) => {
+                                const isCurrentMatch = idx === currentMatchIndexOnPage
+                                return (
+                                  <div
+                                    key={item.key}
+                                    className={`pdf-highlight ${isCurrentMatch ? 'pdf-highlight-current' : ''}`}
+                                    style={{
+                                      left: item.left,
+                                      top: item.top,
+                                      width: item.width,
+                                      height: item.height,
+                                    }}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 ) : activeTree.length ? (
                   <Tree
                     ref={treeRef}
@@ -1410,6 +1764,13 @@ export default function App() {
                     </button>
                     <button
                       type="button"
+                      className={`pdf-tab ${pdfSearchTab === 'mark' ? 'active' : ''}`}
+                      onClick={() => setPdfSearchTab('mark')}
+                    >
+                      Mark
+                    </button>
+                    <button
+                      type="button"
                       className={`pdf-tab ${pdfSearchTab === 'history' ? 'active' : ''}`}
                       onClick={() => setPdfSearchTab('history')}
                     >
@@ -1436,6 +1797,23 @@ export default function App() {
                             ✕
                           </button>
                         </div>
+                        <div className="pdf-search-status" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                          <span>
+                            {pdfSearch.trim()
+                              ? pdfSearchResults.total
+                                ? `Match ${pdfMatchIndex + 1}/${pdfSearchResults.total} on page ${currentPdfMatchPage} — ${pdfSearchResults.total} result${pdfSearchResults.total === 1 ? '' : 's'} across ${pdfSearchResults.pages.length} page${pdfSearchResults.pages.length === 1 ? '' : 's'}`
+                                : 'No results found'
+                              : 'Enter a search term and run search.'}
+                          </span>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="btn-copy" type="button" onClick={prevPdfMatch} disabled={!pdfSearchResults.total} title="Previous result">
+                              ◀
+                            </button>
+                            <button className="btn-copy" type="button" onClick={nextPdfMatch} disabled={!pdfSearchResults.total} title="Next result">
+                              ▶
+                            </button>
+                          </div>
+                        </div>
                         <div className="pdf-search-actions">
                           <button className="btn-copy" type="button" onClick={handlePdfHistoryPrev} title="Previous search term">
                             ↑
@@ -1448,25 +1826,85 @@ export default function App() {
                       </div>
 
                       <div className="comment-field">
-                        <label>Page jump</label>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <label>Quick Mark Current Search</label>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
                           <input
-                            type="number"
-                            min="1"
-                            value={pdfPage}
-                            onChange={e => setPdfPage(Number(e.target.value) || 1)}
-                            placeholder="Page number"
-                            style={{ width: 100 }}
+                            type="text"
+                            value={pdfMarkNote}
+                            onChange={e => setPdfMarkNote(e.target.value)}
+                            placeholder="Note for this match..."
+                            style={{ flex: 1 }}
                           />
-                          <button className="btn-copy" type="button" onClick={() => setPdfPage(pdfPage)}>
-                            Go
+                          <button 
+                            className="btn-copy" 
+                            type="button" 
+                            onClick={handleAddPdfMark}
+                            disabled={!pdfSearch.trim()}
+                            title="Mark current search result"
+                          >
+                            📌
                           </button>
-                          <span className="panel-sub" style={{ margin: 0 }}>
-                            Search anchor and page jump are handled by the browser PDF viewer.
-                          </span>
                         </div>
                       </div>
                     </>
+                  ) : pdfSearchTab === 'mark' ? (
+                    <div className="pdf-mark-panel">
+                      <div className="comment-field">
+                        <label>Add Mark</label>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+                          <input
+                            type="number"
+                            min="1"
+                            max={pdfTotalPages || 1}
+                            value={pdfMarkPage}
+                            onChange={e => setPdfMarkPage(e.target.value)}
+                            placeholder="Page"
+                            style={{ width: 60 }}
+                          />
+                          <input
+                            type="text"
+                            value={pdfMarkLine}
+                            onChange={e => setPdfMarkLine(e.target.value)}
+                            placeholder="Line (optional)"
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={pdfMarkNote}
+                          onChange={e => setPdfMarkNote(e.target.value)}
+                          placeholder="Note..."
+                          style={{ width: '100%', marginBottom: 10 }}
+                        />
+                        <button className="btn-copy" type="button" onClick={handleAddPdfMark} style={{ width: '100%' }}>
+                          ✓ Add Mark
+                        </button>
+                      </div>
+
+                      {currentPdfMarks.length ? (
+                        <div className="pdf-mark-list">
+                          {currentPdfMarks.map(mark => (
+                            <div key={mark.id} className="pdf-mark-item" onClick={() => handleGoToPdfMark(mark.page)} style={{ cursor: 'pointer' }}>
+                              <div>
+                                <strong>Page {mark.page}</strong>
+                                {mark.line ? <div className="pdf-mark-line">{mark.line}</div> : null}
+                                {mark.note ? <div className="pdf-mark-note">{mark.note}</div> : null}
+                              </div>
+                              <button 
+                                className="btn-copy icon-only" 
+                                type="button" 
+                                onClick={(e) => { e.stopPropagation(); handleRemovePdfMark(mark.id) }} 
+                                title="Remove mark"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="panel-empty">No marks yet. Add one to pin locations in this PDF.</div>
+                      )}
+                    </div>
                   ) : (
                     <div className="pdf-history-panel">
                       {pdfSearchHistory.length ? (
@@ -1493,38 +1931,6 @@ export default function App() {
                         <div className="panel-empty">No PDF search history yet. Run a search to save terms.</div>
                       )}
                     </div>
-                  )}
-
-                  <div className="comment-field">
-                    <label>Mark line/page</label>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input
-                        value={pdfLine}
-                        onChange={e => setPdfLine(e.target.value)}
-                        placeholder="Line or note"
-                        style={{ flex: 1 }}
-                      />
-                      <button className="btn-copy" type="button" onClick={handleAddPdfMark}>
-                        Add mark
-                      </button>
-                    </div>
-                  </div>
-
-                  {currentPdfMarks.length ? (
-                    <div className="pdf-mark-list">
-                      {currentPdfMarks.map(mark => (
-                        <div key={mark.id} className="pdf-mark-item">
-                          <div>
-                            <strong>Page {mark.page}</strong>{mark.line ? ` · ${mark.line}` : ''}
-                          </div>
-                          <button className="btn-copy icon-only" type="button" onClick={() => handleRemovePdfMark(mark.id)} title="Remove mark">
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="panel-empty">No page/line markers yet. Add one to pin a location in this PDF.</div>
                   )}
                 </div>
               ) : selectedNodeId ? (

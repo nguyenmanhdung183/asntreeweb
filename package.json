@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "pdfjs-dist": "^4.5.2",
     "vite": "^6.3.5",
     "wrangler": "^4.93.1"
   }
