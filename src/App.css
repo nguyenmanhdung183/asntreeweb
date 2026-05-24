@@ -24,13 +24,28 @@
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────────── */
 .sidebar {
-  width: 220px;
+  width: auto;
   min-width: 220px;
   background: var(--panel);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+}
+
+.sidebar-resize-handle:hover {
+  background: rgba(255,255,255,0.08);
 }
 
 .sidebar-header {

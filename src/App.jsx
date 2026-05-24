@@ -145,6 +145,8 @@ export default function App() {
   const [showAllComments, setShowAllComments] = useState(true)
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(264)
+  const [isDraggingSidebar, setIsDraggingSidebar] = useState(false)
   const [displayMode, setDisplayMode] = useState('varname') // 'varname' or 'type'
   const [overlayWidth, setOverlayWidth] = useState(220)
   const [isDraggingOverlay, setIsDraggingOverlay] = useState(false)
@@ -236,6 +238,30 @@ export default function App() {
     }
   }, [isDraggingOverlay])
 
+  // Handle sidebar drag to resize file panel
+  useEffect(() => {
+    if (!isDraggingSidebar) return
+
+    const handleMouseMove = (e) => {
+      const app = document.querySelector('.app')
+      if (!app) return
+      const newWidth = e.clientX
+      if (newWidth >= 220 && newWidth <= 420) {
+        setSidebarWidth(newWidth)
+      }
+    }
+
+    const handleMouseUp = () => {
+      setIsDraggingSidebar(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDraggingSidebar])
 
   const selectedComment = selectedNodeId ? comments[selectedNodeId] : null
   const [copyMessage, setCopyMessage] = useState('')
@@ -520,7 +546,7 @@ export default function App() {
         <div className="copy-toast" role="status">{copyMessage}</div>
       )}
       {/* ── Sidebar ── */}
-      <aside className="sidebar">
+      <aside className="sidebar" style={{ width: `${sidebarWidth}px`, minWidth: '220px' }}>
         <div className="sidebar-header">
           <div className="logo">
             <span className="logo-icon">⬡</span>
@@ -532,6 +558,11 @@ export default function App() {
           <span className="badge-user">dungnm26</span>
         </div>
         </div>
+        <div
+          className="sidebar-resize-handle"
+          onMouseDown={() => setIsDraggingSidebar(true)}
+          title="Drag to resize files panel"
+        />
 
         <div className="sidebar-section-label">FILES</div>
         
