@@ -257,6 +257,7 @@ export default function App() {
   const [otherSearchTab, setOtherSearchTab] = useState('search')
   const [otherMarkLine, setOtherMarkLine] = useState('')
   const [otherMarkNote, setOtherMarkNote] = useState('')
+  const lastClickedOtherLineRef = useRef(null)
 
   // Very small C syntax highlighter (best-effort)
   const highlightC = (code) => {
@@ -1310,10 +1311,28 @@ export default function App() {
     if (!normalized) return
     setOtherSearchHistory(prev => {
       const existing = prev.filter(item => item !== normalized)
-      return [normalized, ...existing].slice(0, 20)
+      const next = [normalized, ...existing].slice(0, 20)
+      try { sessionStorage.setItem('asn_other_search_history', JSON.stringify(next)) } catch (e) {}
+      return next
     })
     setOtherHistoryIndex(0)
   }
+
+  // load persisted other search history on mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('asn_other_search_history')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length) {
+          setOtherSearchHistory(parsed.slice(0, 20))
+          setOtherHistoryIndex(0)
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [])
 
   const handleOtherSearchSubmit = () => {
     const term = String(otherSearch || '').trim()
@@ -1392,7 +1411,37 @@ export default function App() {
 
   const handleAddOtherMark = (lineParam) => {
     if (!activeFile || activeFile.type !== 'other') return
-    const lineNumber = Number(lineParam ?? otherMarkLine) || 1
+    // prefer explicit param, then DOM input value (to avoid stale React state), then state, then last-click ref
+    const domInput = typeof document !== 'undefined' ? document.getElementById('other-mark-line-input') : null
+    const domVal = domInput ? String(domInput.value || '').trim() : ''
+
+    // If user typed something, validate it as a positive integer and within file bounds
+    const totalLines = (otherFileContent || '').split(/\r?\n/).length || 0
+    if (domVal) {
+      const parsed = Number(domVal)
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        try { window.alert('Invalid line number. Please enter a positive integer.'); } catch (e) {}
+        return
+      }
+      if (totalLines && parsed > totalLines) {
+        try { window.alert(`Line ${parsed} is out of range (1–${totalLines}).`); } catch (e) {}
+        return
+      }
+      var lineNumber = parsed
+    } else {
+      let lineNumber = Number(lineParam || otherMarkLine) || 0
+      // If not provided, accept last clicked line only if it was recent (3s)
+      if (!lineNumber) {
+        const last = lastClickedOtherLineRef.current
+        if (last && last.line && last.ts && (Date.now() - last.ts) <= 3000) {
+          lineNumber = Number(last.line) || 0
+        }
+      }
+      if (!lineNumber) {
+        try { window.alert('No line specified. Click a line in the viewer or type a line number in the Mark input.'); } catch (e) {}
+        return
+      }
+    }
     const mark = {
       id: `${Date.now()}`,
       line: lineNumber,
@@ -1405,6 +1454,7 @@ export default function App() {
     }))
     setOtherMarkLine('')
     setOtherMarkNote('')
+    lastClickedOtherLineRef.current = null
   }
 
   const handleGoToMark = (mark) => {
@@ -1654,7 +1704,7 @@ export default function App() {
             <div 
               className="tree-container" 
               ref={containerRef}
-              style={{ paddingRight: (showAllComments && (activeFile?.type === 'txt' || activeFile?.type === 'other')) ? `${overlayWidth + 8}px` : '0' }}
+              style={{ paddingRight: (showAllComments && activeFile?.type === 'txt') ? `${overlayWidth + 8}px` : '0' }}
             >
               {loading ? (
                 <div className="loading">
@@ -1869,7 +1919,13 @@ export default function App() {
                             html = parts.join('')
                           }
                           return (
-                            <div key={idx} className={`code-line ${otherMatchIndex >= 0 && otherSearchResults.total ? (otherMatchIndex >= 0 ? (getOtherMatchLine(otherMatchIndex) === lineNum ? 'line-current' : '') : '') : ''}`} data-line={lineNum}>
+                            <div
+                              key={idx}
+                              className={`code-line ${otherMatchIndex >= 0 && otherSearchResults.total ? (otherMatchIndex >= 0 ? (getOtherMatchLine(otherMatchIndex) === lineNum ? 'line-current' : '') : '') : ''}`}
+                              data-line={lineNum}
+                                onClick={() => { lastClickedOtherLineRef.current = { line: lineNum, ts: Date.now() }; setOtherMarkLine(String(lineNum)) }}
+                              style={{ cursor: 'pointer' }}
+                            >
                               <div className="code-line-number">{lineNum}</div>
                               <code className="code-line-content" dangerouslySetInnerHTML={{ __html: html }} />
                             </div>
@@ -1997,12 +2053,12 @@ export default function App() {
                     })
                   ) : (
                     // other file content preview: clickable lines
-                    (otherFileContent || '').split(/\r?\n/).slice(0, 500).map((ln, idx) => (
+                      (otherFileContent || '').split(/\r?\n/).slice(0, 500).map((ln, idx) => (
                       <div
                         key={`other-line-${idx+1}`}
                         className={`comment-overlay-item`}
-                        style={{ position: 'relative', padding: '6px 8px' }}
-                        onClick={e => { e.stopPropagation(); scrollToOtherLine(idx + 1) }}
+                        style={{ position: 'relative', padding: '6px 8px', cursor: 'pointer' }}
+                        onClick={e => { e.stopPropagation(); lastClickedOtherLineRef.current = { line: idx + 1, ts: Date.now() }; setOtherMarkLine(String(idx + 1)); scrollToOtherLine(idx + 1) }}
                       >
                         <span className={`overlay-level level-1`} style={{ minWidth: 36 }}>{idx + 1}</span>
                         <div className="comment-overlay-summary" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{ln.slice(0, 120)}</div>
@@ -2050,13 +2106,21 @@ export default function App() {
                 title="Drag to resize"
               />
               <div className="panel-header">
-                <div className="panel-title">
-                  {activeFile?.type === 'pdf' && fileViewMode === 'pdf' ? 'PDF search & marks' : 'Comment details'}
-                </div>
+                  <div className="panel-title">
+                    {activeFile?.type === 'pdf' && fileViewMode === 'pdf'
+                      ? 'PDF search & marks'
+                      : activeFile?.type === 'other'
+                        ? 'Search & marks'
+                        : 'Comment details'
+                    }
+                  </div>
                 <div className="panel-sub">
                   {activeFile?.type === 'pdf' && fileViewMode === 'pdf'
                     ? 'Search inside the PDF viewer and add page/line markers.'
-                    : 'Select a node to edit summary & content'}
+                    : activeFile?.type === 'other'
+                      ? 'Search inside this file and add line markers.'
+                      : 'Select a node to edit summary & content'
+                  }
                   {syncStatus !== 'idle' && (
                     <span className={`sync-status ${syncStatus}`}>
                       {syncStatus === 'saving' ? '⏱ Saving...' : syncStatus === 'synced' ? '✓ Synced' : '⚠ Error'}
@@ -2207,7 +2271,7 @@ export default function App() {
                       <div className="comment-field">
                         <label>Add Mark</label>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
-                          <input type="number" min="1" value={otherMarkLine} onChange={e => setOtherMarkLine(e.target.value)} placeholder="Line" style={{ width: 80 }} />
+                          <input id="other-mark-line-input" type="number" min="1" value={otherMarkLine} onChange={e => setOtherMarkLine(e.target.value)} placeholder="Line" style={{ width: 80 }} />
                         </div>
                         <input type="text" value={otherMarkNote} onChange={e => setOtherMarkNote(e.target.value)} placeholder="Note..." style={{ width: '100%', marginBottom: 10 }} />
                         <button className="btn-copy" type="button" onClick={handleAddOtherMark} style={{ width: '100%' }}>✓ Add Mark</button>

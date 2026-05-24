@@ -595,19 +595,22 @@
   overflow: visible;
 }
 .code-search-highlight {
-  background: rgba(250, 230, 100, 0.35);
+  background: #ffeb3b;
   color: #000;
-  padding: 0 2px;
-  border-radius: 2px;
+  padding: 0 4px;
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.12) inset;
 }
 .code-search-current {
-  background: rgba(94, 234, 212, 0.25);
+  background: #4ee1a3;
   color: #000;
-  padding: 0 2px;
-  border-radius: 2px;
-  box-shadow: 0 0 0 2px rgba(94,234,212,0.06) inset;
+  padding: 0 4px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 3px rgba(78,225,163,0.12) inset;
 }
 .code-line.line-current { background: rgba(94,234,212,0.02); }
+
+.code-search-highlight, .code-search-current { font-weight: 700 }
 .code-view .code-keyword { color: #c586c0; font-weight: 600 }
 .code-view .code-type { color: #4ec9b0 }
 .code-view .code-string { color: #d69d85 }
