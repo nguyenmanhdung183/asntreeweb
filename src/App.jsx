@@ -6,6 +6,8 @@ import './App.css'
 // ─── file manifest (auto: public/data/manifest.json preferred) ─────────
 const FALLBACK_FILE_LIST = ['e2.txt', 'ric.txt']
 const MANIFEST_URL = './data/manifest.json'
+const PDF_FILE_LIST = ['E2AP-V8.pdf', 'E2SM-CCC.pdf', 'E2SM-KPM.pdf', 'E2SM-LLC.pdf', 'E2SM-NI.pdf', 'E2SM-RC.pdf', 'E2SM.pdf']
+const PDF_BASE_URL = './pdf'
 
 // ─── Node renderer ────────────────────────────────────────────────────────────
 function Node({ node, style, dragHandle, selected, comment, onSelect, showAllComments, displayMode, rowIndex, nodeKey, isMatched, matchedName, matchedComment }) {
@@ -187,6 +189,7 @@ export default function App() {
   const [searchComment, setSearchComment] = useState('')
   const [showAllComments, setShowAllComments] = useState(true)
   const [compactComments, setCompactComments] = useState(true)
+  const [fileViewMode, setFileViewMode] = useState('tree')
   const [panelWidth, setPanelWidth] = useState(320)
   const [isDraggingPanel, setIsDraggingPanel] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(264)
@@ -236,6 +239,7 @@ export default function App() {
 
   // Detect if current file is structured protocol format
   const isStructuredFile = useMemo(() => {
+    if (activeFile?.type !== 'txt') return false
     if (!activeFile?.tree?.length) return false
     return activeFile.tree.some(n => n.type || n.structType || n.presence || n.path)
   }, [activeFile])
@@ -394,11 +398,23 @@ export default function App() {
           const res = await fetch(`./data/${fname}`)
           const text = await res.text()
           const tree = parseTxtToTree(text)
-          loaded.push({ name: fname.replace('.txt', ''), fname, tree })
+          loaded.push({ name: fname.replace('.txt', ''), fname, type: 'txt', tree })
         } catch (e) {
           console.warn(`Could not load ${fname}:`, e)
         }
       }
+
+      if (PDF_FILE_LIST.length) {
+        for (const fname of PDF_FILE_LIST) {
+          loaded.push({
+            name: fname.replace(/\.pdf$/i, ''),
+            fname,
+            type: 'pdf',
+            pdfUrl: `${PDF_BASE_URL}/${fname}`,
+          })
+        }
+      }
+
       setFiles(loaded)
       if (loaded.length) setActiveFile(loaded[0])
       setLoading(false)
@@ -461,17 +477,28 @@ export default function App() {
 
   // Count nodes
   useEffect(() => {
-    if (!activeFile) return
+    if (!activeFile || activeFile.type !== 'txt') {
+      setTotalNodes(0)
+      return
+    }
     let count = 0
     function walk(nodes) { for (const n of nodes) { count++; if (n.children) walk(n.children) } }
     walk(activeFile.tree)
     setTotalNodes(count)
   }, [activeFile])
 
+  useEffect(() => {
+    if (!activeFile) return
+    setFileViewMode(activeFile.type === 'pdf' ? 'pdf' : 'tree')
+  }, [activeFile])
+
   const handleExpandAll = () => treeRef.current?.openAll()
   const handleCollapseAll = () => treeRef.current?.closeAll()
 
-  const activeTree = useMemo(() => activeFile?.tree ?? [], [activeFile])
+  const activeTree = useMemo(() => {
+    if (!activeFile || activeFile.type !== 'txt') return []
+    return activeFile.tree ?? []
+  }, [activeFile])
 
   // Filter files based on file search
   const filteredFiles = useMemo(() => {
@@ -665,11 +692,33 @@ export default function App() {
                 setSelectedNodeName('')
               }}
             >
-              <span className="file-icon">📄</span>
+              <span className="file-icon">{f.type === 'pdf' ? '📕' : '📄'}</span>
               <span className="file-name">{f.name}</span>
             </button>
           ))}
         </nav>
+
+        {activeFile?.type === 'pdf' && (
+          <div className="pdf-view-switch-panel">
+            <div className="pdf-view-switch-label">PDF view</div>
+            <div className="pdf-view-switch-buttons">
+              <button
+                className={`btn-tool ${fileViewMode === 'tree' ? 'active' : ''}`}
+                type="button"
+                onClick={() => setFileViewMode('tree')}
+              >
+                Tree
+              </button>
+              <button
+                className={`btn-tool ${fileViewMode === 'pdf' ? 'active' : ''}`}
+                type="button"
+                onClick={() => setFileViewMode('pdf')}
+              >
+                PDF
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="sidebar-footer">
           <div className="stat-row">
@@ -704,8 +753,9 @@ export default function App() {
               <span className="search-icon">⌕</span>
               <input
                 className="search-input"
-                placeholder="Search nodes..."
+                placeholder={activeFile?.type === 'pdf' ? 'PDF selected – tree search disabled' : 'Search nodes...'}
                 value={search}
+                disabled={activeFile?.type === 'pdf'}
                 onChange={e => setSearch(e.target.value)}
               />
               {search && (
@@ -716,8 +766,9 @@ export default function App() {
               <span className="search-icon">💬</span>
               <input
                 className="search-input"
-                placeholder="Search comments..."
+                placeholder={activeFile?.type === 'pdf' ? 'PDF selected – comment search disabled' : 'Search comments...'}
                 value={searchComment}
+                disabled={activeFile?.type === 'pdf'}
                 onChange={e => setSearchComment(e.target.value)}
               />
               {searchComment && (
@@ -732,7 +783,29 @@ export default function App() {
               <span className="match-badge">{matchedNodes.length ? `${matchCursor + 1}/${matchedNodes.length}` : '0/0'}</span>
               <button className="nav-button" onClick={nextMatch} title="Next match">▶</button>
             </div>
-            {isStructuredFile && (
+            {activeFile?.type === 'pdf' && (
+            <button
+              className={`btn-tool ${fileViewMode === 'tree' ? 'active' : ''}`}
+              type="button"
+              onClick={() => setFileViewMode('tree')}
+              title="Show tree view for this PDF"
+            >
+              <span>🌳</span>
+              View tree
+            </button>
+          )}
+          {activeFile?.type === 'pdf' && (
+            <button
+              className={`btn-tool ${fileViewMode === 'pdf' ? 'active' : ''}`}
+              type="button"
+              onClick={() => setFileViewMode('pdf')}
+              title="Show PDF preview"
+            >
+              <span>📄</span>
+              View PDF
+            </button>
+          )}
+          {isStructuredFile && (
               <button
                 className={`btn-tool ${displayMode === 'type' ? 'active' : ''}`}
                 type="button"
@@ -785,6 +858,53 @@ export default function App() {
                 </div>
               ) : !activeFile ? (
                 <div className="empty">Select a file to view</div>
+              ) : activeFile.type === 'pdf' ? (
+                fileViewMode === 'pdf' ? (
+                  <iframe
+                    className="pdf-viewer"
+                    title={activeFile.name}
+                    src={activeFile.pdfUrl}
+                  />
+                ) : activeTree.length ? (
+                  <Tree
+                    ref={treeRef}
+                    data={activeTree}
+                    openByDefault={false}
+                    width="100%"
+                    height={treeHeight}
+                    indent={28}
+                    rowHeight={28}
+                    searchTerm={((search || '').trim() || (searchComment || '').trim()) ? `${search}||${searchComment}` : ''}
+                    searchMatch={treeSearchMatch}
+                    disableDrag
+                    disableDrop
+                  >
+                    {props => {
+                      const nodeKey = `${activeFile?.fname}:${props.node.data.id}`
+                      const rowIndex = flatNodeList.findIndex(x => x.node.id === props.node.data.id)
+                      const matchedName = matchedNameSet.has(nodeKey)
+                      const matchedComment = matchedCommentSet.has(nodeKey)
+                      const isMatched = matchedName || matchedComment || treeSearchMatch(props.node, `${search}||${searchComment}`)
+                      return (
+                        <Node
+                          {...props}
+                          nodeKey={nodeKey}
+                          rowIndex={rowIndex}
+                          isMatched={isMatched}
+                          matchedName={matchedName}
+                          matchedComment={matchedComment}
+                          selected={selectedNodeId === nodeKey}
+                          comment={comments[nodeKey]}
+                          showAllComments={showAllComments}
+                          displayMode={displayMode}
+                          onSelect={(id, name) => handleSelectNode(`${activeFile?.fname}:${id}`, name)}
+                        />
+                      )
+                    }}
+                  </Tree>
+                ) : (
+                  <div className="empty">No tree data available for this PDF.</div>
+                )
               ) : (
                 <Tree
                   ref={treeRef}
@@ -826,7 +946,7 @@ export default function App() {
             </div>
 
             {/* Fixed comment overlay layer */}
-            {showAllComments && (
+            {showAllComments && activeFile?.type !== 'pdf' && (
               <div 
                 className="comment-overlay"
                 style={{ width: `${overlayWidth}px` }}

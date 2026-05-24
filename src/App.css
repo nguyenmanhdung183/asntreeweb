@@ -725,6 +725,32 @@
   /* padding-right set dynamically via inline style */
 }
 
+.pdf-viewer {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.pdf-view-switch-panel {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+
+.pdf-view-switch-label {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.pdf-view-switch-buttons {
+  display: flex;
+  gap: 6px;
+}
+
 /* react-arborist overrides */
 .tree-container [data-testid="tree"] {
   scrollbar-width: thin;
