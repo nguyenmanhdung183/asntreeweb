@@ -267,24 +267,24 @@ export default function App() {
     let out = esc(code)
 
     // comments (/* */ and //)
-    out = out.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
-    out = out.replace(/(\/\/.*?$)/gmu, '<span class="code-comment">$1</span>')
+    // out = out.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
+    // out = out.replace(/(\/\/.*?$)/gmu, '<span class="code-comment">$1</span>')
 
     // strings
-    out = out.replace(/(\"(?:\\\"|[^\"])*\"|\'(?:\\'|[^'])*\')/g, '<span class="code-string">$1</span>')
+   // out = out.replace(/(\"(?:\\\"|[^\"])*\"|\'(?:\\'|[^'])*\')/g, '<span class="code-string">$1</span>')
 
     // numbers
-    out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?)\b/g, '<span class="code-number">$1</span>')
+   // out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?)\b/g, '<span class="code-number">$1</span>')
 
     // keywords
     const keywords = ['int','char','void','return','if','else','for','while','do','switch','case','break','continue','default','struct','union','typedef','static','const','sizeof','enum','unsigned','signed','long','short']
     const kwRegex = new RegExp('\\\b(' + keywords.join('|') + ')\\\b', 'g')
-    out = out.replace(kwRegex, '<span class="code-keyword">$1</span>')
+    //out = out.replace(kwRegex, '<span class="code-keyword">$1</span>')
 
     // common types
     const types = ['size_t','uint32_t','uint16_t','uint8_t','int32_t','int64_t']
     const tRegex = new RegExp('\\\b(' + types.join('|') + ')\\\b', 'g')
-    out = out.replace(tRegex, '<span class="code-type">$1</span>')
+    //out = out.replace(tRegex, '<span class="code-type">$1</span>')
 
     return out
   }
@@ -293,10 +293,10 @@ export default function App() {
     if (!line) return ''
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     let out = esc(line)
-    out = out.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
-    out = out.replace(/(\/\/.*?$)/gmu, '<span class="code-comment">$1</span>')
-    out = out.replace(/(\"(?:\\\"|[^"])*\"|\'(?:\\'|[^'])*\')/g, '<span class="code-string">$1</span>')
-    out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?)\b/g, '<span class="code-number">$1</span>')
+    // out = out.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="code-comment">$1</span>')
+    // out = out.replace(/(\/\/.*?$)/gmu, '<span class="code-comment">$1</span>')
+    // out = out.replace(/(\"(?:\\\"|[^"])*\"|\'(?:\\'|[^'])*\')/g, '<span class="code-string">$1</span>')
+    // out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?)\b/g, '<span class="code-number">$1</span>')
     const keywords = ['int','char','void','return','if','else','for','while','do','switch','case','break','continue','default','struct','union','typedef','static','const','sizeof','enum','unsigned','signed','long','short']
     const kwRegex = new RegExp('\\\b(' + keywords.join('|') + ')\\\b', 'g')
     out = out.replace(kwRegex, '<span class="code-keyword">$1</span>')
