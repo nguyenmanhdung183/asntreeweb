@@ -81,6 +81,7 @@ function Node({ node, style, dragHandle, selected, comment, onSelect, showAllCom
 
 // ─── API Endpoints ────────────────────────────────────────────────────────────
 const COMMENTS_API = import.meta.env.VITE_COMMENTS_API || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? 'https://asntreeweb.nguyendung010803.workers.dev/api/comments' : '/api/comments')
+const NOTES_API = import.meta.env.VITE_NOTES_API || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') ? 'https://asntreeweb.nguyendung010803.workers.dev/api/notes' : '/api/notes')
 
 const STRUCT_TYPE_PALETTE = [
   { color: '#22c55e', background: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.2)' },
@@ -154,6 +155,31 @@ async function clearCommentsFromAPI() {
   const res = await fetch(COMMENTS_API, { method: 'DELETE' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   localStorage.removeItem('asn_comments')
+  return true
+}
+
+// Notes API (mirror comments behavior)
+async function loadNotesFromAPI() {
+  const res = await fetch(NOTES_API)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return await res.json()
+}
+
+async function saveNotesToAPI(notes) {
+  const res = await fetch(NOTES_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(notes),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  localStorage.setItem('asn_notes', JSON.stringify(notes))
+  return true
+}
+
+async function clearNotesFromAPI() {
+  const res = await fetch(NOTES_API, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  localStorage.removeItem('asn_notes')
   return true
 }
 
@@ -363,6 +389,7 @@ export default function App() {
   const treeRef = useRef(null)
   const panelRef = useRef(null)
   const saveTimeoutRef = useRef(null)
+  const notesSaveTimeoutRef = useRef(null)
 
   useEffect(() => {
     try {
@@ -672,6 +699,18 @@ export default function App() {
       }
       setLoading(false)
       
+      // Try to load notes from API (fall back to stored local notes)
+      try {
+        const apiNotes = await loadNotesFromAPI()
+        if (Array.isArray(apiNotes)) {
+          const normalized = apiNotes.map(n => ({ ...n, type: 'note', content: n.content ?? '' }))
+          setNotes(normalized)
+        }
+      } catch (e) {
+        console.warn('Failed to load notes from API:', e)
+        // keep stored notes
+      }
+
       // Load comments from API
       try {
         const loadedComments = await loadCommentsFromAPI()
@@ -716,6 +755,28 @@ export default function App() {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     }
   }, [comments])
+  // Auto-save notes when they change (with debounce)
+  useEffect(() => {
+    if (!Array.isArray(notes) || notes.length === 0) return
+    setSyncStatus('saving')
+    if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current)
+    notesSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveNotesToAPI(notes)
+        setSyncStatus('synced')
+        setSyncError('')
+      } catch (e) {
+        console.warn('Failed to save notes to API:', e)
+        setSyncError(`Could not save notes to backend: ${e.message}`)
+        setSyncStatus('error')
+        saveNotesToStorage(notes)
+      }
+    }, 2000)
+
+    return () => {
+      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current)
+    }
+  }, [notes])
   useEffect(() => {
     function measure() {
       if (containerRef.current) {
