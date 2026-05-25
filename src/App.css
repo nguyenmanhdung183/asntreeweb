@@ -284,6 +284,36 @@
 .sync-status {
   font-size: 11px;
   margin-top: 6px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  min-height: 20px;
+  line-height: 16px;
+}
+
+.sync-status-saving {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.sync-status-synced {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.sync-status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.sync-status-idle {
+  display: none;
+}
+
+.sync-status {
+  font-size: 11px;
+  margin-top: 6px;
   padding: 4px 8px;
   border-radius: 4px;
   width: fit-content;
