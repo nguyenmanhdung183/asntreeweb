@@ -58,6 +58,43 @@ export default {
         )
       }
 
+      // GET /api/notes - Load all notes
+      if (pathname === '/api/notes' && request.method === 'GET') {
+        const notes = await env.NOTES_KV.get('notes')
+        return new Response(
+          JSON.stringify(notes ? JSON.parse(notes) : []),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        )
+      }
+
+      // POST /api/notes - Save all notes
+      if (pathname === '/api/notes' && request.method === 'POST') {
+        const body = await request.json()
+        await env.NOTES_KV.put('notes', JSON.stringify(body))
+        return new Response(
+          JSON.stringify({ success: true, message: 'Notes saved' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        )
+      }
+
+      // DELETE /api/notes - Clear all notes
+      if (pathname === '/api/notes' && request.method === 'DELETE') {
+        await env.NOTES_KV.delete('notes')
+        return new Response(
+          JSON.stringify({ success: true, message: 'All notes deleted' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        )
+      }
+
       // GET / or /api - Friendly info page
       if (pathname === '/' && request.method === 'GET') {
         return new Response(

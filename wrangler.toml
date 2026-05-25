@@ -8,6 +8,12 @@ binding = "COMMENTS_KV"
 id = "bfddf86f837a40dc9dc6c481ba88ba2b"
 preview_id = "3711064994b642cd9e3ac07f0b90a869"
 
+# KV binding for storing notes
+[[kv_namespaces]]
+binding = "NOTES_KV"
+id = "bfddf86f837a40dc9dc6c481ba88ba2b"
+preview_id = "3711064994b642cd9e3ac07f0b90a869"
+
 # Local development configuration
 [env.development]
 name = "asntreeweb-comments-dev"

@@ -617,8 +617,19 @@ export default function App() {
     async function loadFiles() {
       setLoading(true)
       const loaded = []
-      const storedNotes = loadStoredNotes()
-      setNotes(storedNotes)
+      
+      // Try to load notes from API first, fall back to stored local notes
+      let notesData = []
+      try {
+        const apiNotes = await loadNotesFromAPI()
+        if (Array.isArray(apiNotes)) {
+          notesData = apiNotes.map(n => ({ ...n, type: 'note', content: n.content ?? '' }))
+        }
+      } catch (e) {
+        console.warn('Failed to load notes from API:', e)
+        notesData = loadStoredNotes()
+      }
+      setNotes(notesData)
 
       // try to read manifest.json first, fall back to hardcoded list
       let fileList = FALLBACK_FILE_LIST
@@ -682,34 +693,22 @@ export default function App() {
       }
 
       setFiles(loaded)
-      if (loaded.length || storedNotes.length) {
+      if (loaded.length || notesData.length) {
         let preferred
         if (fileListTab === 'notes' && lastSelectedFiles.notes) {
-          preferred = storedNotes.find(f => f.fname === lastSelectedFiles.notes)
+          preferred = notesData.find(f => f.fname === lastSelectedFiles.notes)
         }
         if (!preferred && (fileListTab === 'txt' || fileListTab === 'pdf')) {
           preferred = loaded.find(f => f.type === fileListTab && f.fname === lastSelectedFiles[fileListTab])
         }
         if (!preferred) {
-          if (fileListTab === 'notes') preferred = storedNotes[0]
+          if (fileListTab === 'notes') preferred = notesData[0]
           else preferred = loaded.find(f => f.type === fileListTab)
         }
-        if (!preferred) preferred = loaded[0] || storedNotes[0]
+        if (!preferred) preferred = loaded[0] || notesData[0]
         setActiveFile(preferred)
       }
       setLoading(false)
-      
-      // Try to load notes from API (fall back to stored local notes)
-      try {
-        const apiNotes = await loadNotesFromAPI()
-        if (Array.isArray(apiNotes)) {
-          const normalized = apiNotes.map(n => ({ ...n, type: 'note', content: n.content ?? '' }))
-          setNotes(normalized)
-        }
-      } catch (e) {
-        console.warn('Failed to load notes from API:', e)
-        // keep stored notes
-      }
 
       // Load comments from API
       try {
@@ -871,7 +870,6 @@ export default function App() {
     const note = createNoteFile(name)
     const nextNotes = [...notes, note]
     setNotes(nextNotes)
-    saveNotesToStorage(nextNotes)
     setFileListTab('notes')
     setActiveFile(note)
     setSearch('')
@@ -891,9 +889,7 @@ export default function App() {
       fname: `${newName.trim().replace(/\s+/g, '_')}-${note.id}.txt`,
     }
     setNotes(prev => {
-      const next = prev.map(n => n.id === note.id ? updatedNote : n)
-      saveNotesToStorage(next)
-      return next
+      return prev.map(n => n.id === note.id ? updatedNote : n)
     })
     if (activeFile?.type === 'note' && activeFile.id === note.id) {
       setActiveFile(updatedNote)
@@ -905,9 +901,7 @@ export default function App() {
     if (!note) return
     if (!window.confirm(`Delete note "${note.name}"? This cannot be undone.`)) return
     setNotes(prev => {
-      const next = prev.filter(n => n.id !== note.id)
-      saveNotesToStorage(next)
-      return next
+      return prev.filter(n => n.id !== note.id)
     })
     if (activeFile?.type === 'note' && activeFile.id === note.id) {
       const nextNote = notes.find(n => n.id !== note.id)
@@ -924,9 +918,7 @@ export default function App() {
   const updateNoteContent = (content) => {
     if (!activeFile || activeFile.type !== 'note') return
     setNotes(prev => {
-      const next = prev.map(note => note.id === activeFile.id ? { ...note, content } : note)
-      saveNotesToStorage(next)
-      return next
+      return prev.map(note => note.id === activeFile.id ? { ...note, content } : note)
     })
     setActiveFile(prev => prev && prev.type === 'note' ? { ...prev, content } : prev)
   }
