@@ -2013,6 +2013,12 @@ export default function App() {
                     <div>
                       <div className="note-editor-name">{activeFile.name}</div>
                       <div className="note-editor-sub">Note file: {activeFile.fname}</div>
+                      <div className={`sync-status sync-status-${syncStatus}`}>
+                        {syncStatus === 'saving' && '💾 Saving...'}
+                        {syncStatus === 'synced' && '✓ Synced'}
+                        {syncStatus === 'error' && '✗ Error'}
+                        {syncStatus === 'idle' && ''}
+                      </div>
                     </div>
                     <div className="note-editor-actions">
                       <button className="btn-copy" type="button" onClick={() => renameNote(activeFile)}>
