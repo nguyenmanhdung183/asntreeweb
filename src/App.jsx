@@ -1830,9 +1830,21 @@ export default function App() {
                         <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear">
                           ✕
                         </button>
+                        <button className="btn-copy" type="button" onClick={() => {
+                          if (activeFile?.pdfUrl) window.open(activeFile.pdfUrl, '_blank')
+                        }} title="Open PDF in browser">
+                          🌐 Browser
+                        </button>
                       </div>
 
                       <div className="pdf-zoom-group">
+                        <button className="btn-copy" type="button" onClick={() => {
+                          const currentPageNum = Number(pdfPage) || 1
+                          const pageInfo = pdfTextPages.find(p => p.page === currentPageNum)
+                          if (pageInfo) copyText(pageInfo.text, 'Page text')
+                        }} title="Copy all text from current page">
+                          📋 Copy page
+                        </button>
                         <button className="btn-copy" type="button" onClick={() => setPdfScale(0.6)} title="Fit to width">
                           📄 Fit
                         </button>
