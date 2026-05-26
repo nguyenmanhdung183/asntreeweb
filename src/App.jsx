@@ -1274,11 +1274,26 @@ export default function App() {
         const text = String(item.str || '')
         const normalized = text.toLowerCase()
         if (!normalized.includes(term)) return matchesForPage
+        
+        // Find exact position of search term within the text
+        const matchStartIndex = normalized.indexOf(term)
+        if (matchStartIndex === -1) return matchesForPage
+        
+        // Estimate character width and calculate match position
+        const itemWidth = item.width || 0
+        const itemLength = text.length
+        const avgCharWidth = itemLength > 0 ? itemWidth / itemLength : 0
+        
+        // Calculate position of match within the item
+        const matchStartOffset = matchStartIndex * avgCharWidth
+        const matchWidth = term.length * avgCharWidth
+        
         const x = item.transform?.[4] || 0
         const y = item.transform?.[5] || 0
-        const width = item.width || 0
         const height = item.height || 0
-        const rect = viewport.convertToViewportRectangle([x, y, x + width, y + height])
+        
+        // Convert coordinates for just the match portion
+        const rect = viewport.convertToViewportRectangle([x + matchStartOffset, y, x + matchStartOffset + matchWidth, y + height])
         const left = Math.min(rect[0], rect[2])
         const top = Math.min(rect[1], rect[3])
         const w = Math.abs(rect[2] - rect[0])
