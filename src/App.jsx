@@ -286,7 +286,9 @@ export default function App() {
   const [otherMarkLine, setOtherMarkLine] = useState('')
   const [otherMarkNote, setOtherMarkNote] = useState('')
   const [otherSelectedText, setOtherSelectedText] = useState('')
+  const [otherCurrentVisibleLine, setOtherCurrentVisibleLine] = useState(1)
   const lastClickedOtherLineRef = useRef(null)
+  const otherViewerRef = useRef(null)
 
   // Very small C syntax highlighter (best-effort)
   const highlightC = (code) => {
@@ -375,6 +377,8 @@ export default function App() {
   const [sidebarWidth, setSidebarWidth] = useState(264)
   const pdfCanvasRefs = useRef({})
   const pdfPageRefs = useRef({})
+  const [pdfCurrentVisiblePage, setPdfCurrentVisiblePage] = useState(1)
+  const pdfCanvasAreaRef = useRef(null)
   const scrollToPdfPage = useCallback((pageNum) => {
     const target = pdfPageRefs.current[pageNum]
     if (target && typeof target.scrollIntoView === 'function') {
@@ -998,6 +1002,28 @@ export default function App() {
     setActiveFile(prev => prev && prev.type === 'note' ? { ...prev, content } : prev)
   }
 
+  const moveNoteUp = (note) => {
+    if (!note) return
+    setNotes(prev => {
+      const index = prev.findIndex(n => n.id === note.id)
+      if (index <= 0) return prev
+      const newNotes = [...prev]
+      ;[newNotes[index], newNotes[index - 1]] = [newNotes[index - 1], newNotes[index]]
+      return newNotes
+    })
+  }
+
+  const moveNoteDown = (note) => {
+    if (!note) return
+    setNotes(prev => {
+      const index = prev.findIndex(n => n.id === note.id)
+      if (index < 0 || index >= prev.length - 1) return prev
+      const newNotes = [...prev]
+      ;[newNotes[index], newNotes[index + 1]] = [newNotes[index + 1], newNotes[index]]
+      return newNotes
+    })
+  }
+
   const handleExpandAll = () => treeRef.current?.openAll()
   const handleCollapseAll = () => treeRef.current?.closeAll()
 
@@ -1082,6 +1108,27 @@ export default function App() {
       return
     }
 
+    // Update visible page based on current scroll before auto-jump happens
+    if (pdfCanvasAreaRef.current) {
+      const container = pdfCanvasAreaRef.current
+      const pages = container.querySelectorAll('.pdf-page')
+      if (pages.length > 0) {
+        const containerRect = container.getBoundingClientRect()
+        let firstVisiblePage = 1
+        for (const page of pages) {
+          const rect = page.getBoundingClientRect()
+          if (rect.top < containerRect.bottom && rect.bottom > containerRect.top) {
+            const pageNum = Number(page.querySelector('.pdf-page-header')?.textContent.match(/\d+/)?.[0])
+            if (pageNum && pageNum > 0) {
+              firstVisiblePage = pageNum
+              break
+            }
+          }
+        }
+        setPdfCurrentVisiblePage(firstVisiblePage)
+      }
+    }
+
     const term = pdfSearch.trim().toLowerCase()
     const pages = []
     let total = 0
@@ -1127,6 +1174,69 @@ export default function App() {
     }
     return -1
   }
+
+  // Get first match index on a specific page
+  const getFirstMatchIndexOnPage = (pageNum) => {
+    if (!pdfSearchResults.total || !pdfSearchResults.pages) return -1
+    let cumulative = 0
+    for (const pageInfo of pdfSearchResults.pages) {
+      if (pageInfo.page === pageNum && pageInfo.count > 0) {
+        return cumulative
+      }
+      cumulative += pageInfo.count
+    }
+    return -1
+  }
+
+  // Auto-jump to first match on current page when page changes
+  // Note: Removed auto-update of match index when page changes
+  // Match index only updates via explicit Next/Previous navigation
+
+  // Detect visible page when scrolling PDF viewer (with debounce)
+  const pdfScrollTimeoutRef = useRef(null)
+  useEffect(() => {
+    if (activeFile?.type !== 'pdf' || !pdfCanvasAreaRef.current) return
+    
+    const handleScroll = () => {
+      const container = pdfCanvasAreaRef.current
+      if (!container) return
+      
+      // Clear existing timeout
+      if (pdfScrollTimeoutRef.current) clearTimeout(pdfScrollTimeoutRef.current)
+      
+      // Debounce: only update after scroll stops for 200ms
+      pdfScrollTimeoutRef.current = setTimeout(() => {
+        const pages = container.querySelectorAll('.pdf-page')
+        if (pages.length === 0) return
+        
+        const containerRect = container.getBoundingClientRect()
+        let firstVisiblePage = 1
+        
+        for (const page of pages) {
+          const rect = page.getBoundingClientRect()
+          if (rect.top < containerRect.bottom && rect.bottom > containerRect.top) {
+            const pageNum = Number(page.querySelector('.pdf-page-header')?.textContent.match(/\d+/)?.[0])
+            if (pageNum && pageNum > 0) {
+              firstVisiblePage = pageNum
+              break
+            }
+          }
+        }
+        
+        setPdfCurrentVisiblePage(firstVisiblePage)
+      }, 200)
+    }
+    
+    const container = pdfCanvasAreaRef.current
+    container.addEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      if (pdfScrollTimeoutRef.current) clearTimeout(pdfScrollTimeoutRef.current)
+    }
+  }, [activeFile])
+
+  // Match index only updates via explicit navigation (Next/Previous buttons)
+  // Scrolling does NOT auto-update match index
 
   const goToPdfMatch = (delta) => {
     if (!pdfSearchResults.total) return
@@ -1514,6 +1624,28 @@ export default function App() {
       setOtherMatchIndex(-1)
       return
     }
+    
+    // Update visible line based on current scroll before auto-jump happens
+    if (otherViewerRef.current) {
+      const container = otherViewerRef.current
+      const lines = container.querySelectorAll('[data-line]')
+      if (lines.length > 0) {
+        const containerRect = container.getBoundingClientRect()
+        let firstVisibleLine = 1
+        for (const line of lines) {
+          const rect = line.getBoundingClientRect()
+          if (rect.top < containerRect.bottom && rect.bottom > containerRect.top) {
+            const lineNum = Number(line.getAttribute('data-line'))
+            if (lineNum && lineNum > 0) {
+              firstVisibleLine = lineNum
+              break
+            }
+          }
+        }
+        setOtherCurrentVisibleLine(firstVisibleLine)
+      }
+    }
+    
     const term = otherSearch.trim().toLowerCase()
     const lines = otherFileContent.split(/\r?\n/)
     const resLines = []
@@ -1555,6 +1687,77 @@ export default function App() {
 
   const prevOtherMatch = () => goToOtherMatch(-1)
   const nextOtherMatch = () => goToOtherMatch(1)
+
+  // Get first match index on or after a specific line
+  const getFirstMatchIndexOnOrAfterLine = (lineNum) => {
+    if (!otherSearchResults.total || !otherSearchResults.lines) return -1
+    let cumulative = 0
+    for (const lineInfo of otherSearchResults.lines) {
+      if (lineInfo.line >= lineNum && lineInfo.count > 0) {
+        return cumulative
+      }
+      cumulative += lineInfo.count
+    }
+    return -1
+  }
+
+  // Detect visible line in other viewer when scrolling (with debounce)
+  const otherScrollTimeoutRef = useRef(null)
+  useEffect(() => {
+    if (activeFile?.type !== 'other' || !otherViewerRef.current) return
+    
+    const handleScroll = () => {
+      const container = otherViewerRef.current
+      if (!container) return
+      
+      // Clear existing timeout
+      if (otherScrollTimeoutRef.current) clearTimeout(otherScrollTimeoutRef.current)
+      
+      // Debounce: only update after scroll stops for 200ms
+      otherScrollTimeoutRef.current = setTimeout(() => {
+        const lines = container.querySelectorAll('[data-line]')
+        if (lines.length === 0) return
+        
+        const containerRect = container.getBoundingClientRect()
+        let firstVisibleLine = 1
+        
+        for (const line of lines) {
+          const rect = line.getBoundingClientRect()
+          if (rect.top < containerRect.bottom && rect.bottom > containerRect.top) {
+            const lineNum = Number(line.getAttribute('data-line'))
+            if (lineNum && lineNum > 0) {
+              firstVisibleLine = lineNum
+              break
+            }
+          }
+        }
+        
+        setOtherCurrentVisibleLine(firstVisibleLine)
+      }, 200)
+    }
+    
+    const container = otherViewerRef.current
+    container.addEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      if (otherScrollTimeoutRef.current) clearTimeout(otherScrollTimeoutRef.current)
+    }
+  }, [activeFile])
+
+  // Auto-jump to first match on current visible area when scroll changes
+  useEffect(() => {
+    if (!otherSearch.trim() || !otherSearchResults.total || otherMatchIndex < 0) return
+    const currentMatchLine = getOtherMatchLine(otherMatchIndex)
+    if (currentMatchLine === otherCurrentVisibleLine || 
+        (currentMatchLine > otherCurrentVisibleLine - 5 && currentMatchLine < otherCurrentVisibleLine + 10)) {
+      return // Already showing match near visible area
+    }
+    
+    const firstMatchOnArea = getFirstMatchIndexOnOrAfterLine(otherCurrentVisibleLine)
+    if (firstMatchOnArea >= 0) {
+      setOtherMatchIndex(firstMatchOnArea)
+    }
+  }, [otherCurrentVisibleLine, otherSearch])
 
   useEffect(() => {
     if (otherMatchIndex >= 0 && otherSearchResults.total > 0) {
@@ -1900,7 +2103,7 @@ export default function App() {
                 <div className="empty">Select a file to view</div>
               ) : activeFile.type === 'pdf' ? (
                 fileViewMode === 'pdf' ? (
-                  <div className="pdf-canvas-area">
+                  <div className="pdf-canvas-area" ref={pdfCanvasAreaRef}>
                     <div className="pdf-view-controls">
                       <div className="pdf-nav-group">
                         <button className="btn-copy" type="button" onClick={prevPdfPage} disabled={Number(pdfPage) <= 1} title="Previous page">
@@ -2077,7 +2280,7 @@ export default function App() {
                       <span>Loading file...</span>
                     </div>
                   ) : ((/\.(?:c|h)$/i.test(activeFile.fname)) ? (
-                      <div className="code-view">
+                      <div className="code-view" ref={otherViewerRef}>
                         {(otherFileContent || '').split(/\r?\n/).map((ln, idx) => {
                           const lineNum = idx + 1
                           const term = (otherSearch || '').trim()
@@ -2155,6 +2358,7 @@ export default function App() {
                       </div>
                     ) : (
                       <textarea
+                        ref={otherViewerRef}
                         className="note-editor"
                         value={otherFileContent || ''}
                         readOnly
@@ -2176,6 +2380,12 @@ export default function App() {
                       </div>
                     </div>
                     <div className="note-editor-actions">
+                      <button className="btn-copy" type="button" onClick={() => moveNoteUp(activeFile)}>
+                        ↑ Up
+                      </button>
+                      <button className="btn-copy" type="button" onClick={() => moveNoteDown(activeFile)}>
+                        ↓ Down
+                      </button>
                       <button className="btn-copy" type="button" onClick={() => renameNote(activeFile)}>
                         Rename
                       </button>
