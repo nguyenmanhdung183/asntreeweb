@@ -285,6 +285,7 @@ export default function App() {
   const [otherSearchTab, setOtherSearchTab] = useState('search')
   const [otherMarkLine, setOtherMarkLine] = useState('')
   const [otherMarkNote, setOtherMarkNote] = useState('')
+  const [otherSelectedText, setOtherSelectedText] = useState('')
   const lastClickedOtherLineRef = useRef(null)
 
   // Very small C syntax highlighter (best-effort)
@@ -1575,6 +1576,24 @@ export default function App() {
     }
   }
 
+  // Detect text selection in other file viewer
+  const handleOtherFileSelection = () => {
+    if (activeFile?.type !== 'other') return
+    const selected = (window.getSelection?.() || document.getSelection?.()).toString().trim()
+    if (selected && selected.length > 0) {
+      // Only highlight whole words or short phrases
+      if (/^[a-zA-Z0-9_]+$/.test(selected) || selected.split(/\s+/).length <= 3) {
+        setOtherSelectedText(selected)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (activeFile?.type !== 'other') return
+    document.addEventListener('mouseup', handleOtherFileSelection)
+    return () => document.removeEventListener('mouseup', handleOtherFileSelection)
+  }, [activeFile])
+
   const handleAddOtherMark = (lineParam) => {
     if (!activeFile || activeFile.type !== 'other') return
     // prefer explicit param, then DOM input value (to avoid stale React state), then state, then last-click ref
@@ -2062,10 +2081,13 @@ export default function App() {
                         {(otherFileContent || '').split(/\r?\n/).map((ln, idx) => {
                           const lineNum = idx + 1
                           const term = (otherSearch || '').trim()
+                          const selectedTerm = otherSelectedText.trim()
                           let html = ''
-                          if (!term) {
+                          
+                          if (!term && !selectedTerm) {
                             html = highlightLine(ln)
-                          } else {
+                          } else if (term) {
+                            // Priority: search term
                             const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                             const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
                             // compute cumulative matches before this line
@@ -2090,6 +2112,27 @@ export default function App() {
                               parts.push(`<span class="${cls}">${esc(matchText)}</span>`)
                               lastIndex = re.lastIndex
                               localIndex += 1
+                              // avoid infinite loops
+                              if (re.lastIndex === start) re.lastIndex++
+                            }
+                            if (lastIndex < ln.length) parts.push(highlightLine(ln.slice(lastIndex)))
+                            html = parts.join('')
+                          } else if (selectedTerm) {
+                            // Selection highlight (cyan)
+                            const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                            const re = new RegExp(selectedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                            let lastIndex = 0
+                            let m
+                            re.lastIndex = 0
+                            const parts = []
+                            while ((m = re.exec(ln)) !== null) {
+                              const start = m.index
+                              const matchText = m[0]
+                              if (start > lastIndex) {
+                                parts.push(highlightLine(ln.slice(lastIndex, start)))
+                              }
+                              parts.push(`<span class="code-selection-highlight">${esc(matchText)}</span>`)
+                              lastIndex = re.lastIndex
                               // avoid infinite loops
                               if (re.lastIndex === start) re.lastIndex++
                             }

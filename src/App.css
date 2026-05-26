@@ -675,9 +675,16 @@
   border-radius: 3px;
   box-shadow: 0 0 0 3px rgba(78,225,163,0.12) inset;
 }
+.code-selection-highlight {
+  background: #06b6d4;
+  color: #fff;
+  padding: 0 4px;
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2) inset;
+}
 .code-line.line-current { background: rgba(94,234,212,0.02); }
 
-.code-search-highlight, .code-search-current { font-weight: 700 }
+.code-search-highlight, .code-search-current, .code-selection-highlight { font-weight: 700 }
 .code-view .code-keyword { color: #c586c0; font-weight: 600 }
 .code-view .code-type { color: #4ec9b0 }
 .code-view .code-string { color: #d69d85 }
