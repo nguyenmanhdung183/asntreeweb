@@ -267,6 +267,7 @@ export default function App() {
   const [fileListTab, setFileListTab] = useState('txt')
   const [notes, setNotes] = useState([])
   const [lastSelectedFiles, setLastSelectedFiles] = useState({ txt: '', pdf: '', notes: '', other: '' })
+  const [fileSearchByTab, setFileSearchByTab] = useState({ txt: '', pdf: '', notes: '', other: '' })
   const [pdfSearch, setPdfSearch] = useState('')
   const [pdfPage, setPdfPage] = useState(1)
   const [pdfMarkPage, setPdfMarkPage] = useState('')
@@ -395,6 +396,7 @@ export default function App() {
     try {
       const storedTab = sessionStorage.getItem('asn_file_list_tab')
       const storedFiles = sessionStorage.getItem('asn_last_selected_files')
+      const storedFileSearch = sessionStorage.getItem('asn_file_search_by_tab')
       if (['pdf','txt','notes','other'].includes(storedTab)) {
         setFileListTab(storedTab)
       }
@@ -404,6 +406,17 @@ export default function App() {
           setLastSelectedFiles({
             txt: parsed.txt || '',
             pdf: parsed.pdf || '',
+          })
+        }
+      }
+      if (storedFileSearch) {
+        const parsed = JSON.parse(storedFileSearch)
+        if (parsed && typeof parsed === 'object') {
+          setFileSearchByTab({
+            txt: parsed.txt || '',
+            pdf: parsed.pdf || '',
+            notes: parsed.notes || '',
+            other: parsed.other || '',
           })
         }
       }
@@ -427,6 +440,27 @@ export default function App() {
       // ignore
     }
   }, [lastSelectedFiles])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('asn_file_search_by_tab', JSON.stringify(fileSearchByTab))
+    } catch (e) {
+      // ignore
+    }
+  }, [fileSearchByTab])
+
+  // Load fileSearch from fileSearchByTab when fileListTab changes
+  useEffect(() => {
+    setFileSearch(fileSearchByTab[fileListTab] || '')
+  }, [fileListTab])
+
+  // Save fileSearch to fileSearchByTab when it changes
+  useEffect(() => {
+    setFileSearchByTab(prev => {
+      if (prev[fileListTab] === fileSearch) return prev
+      return { ...prev, [fileListTab]: fileSearch }
+    })
+  }, [fileSearch, fileListTab])
 
   const updateLastSelectedFile = (file) => {
     if (!file) return
@@ -807,17 +841,57 @@ export default function App() {
       setPdfSearch('')
       setPdfPage(1)
       setPdfLine('')
-      setPdfHistoryIndex(-1)
+      // Load PDF search history for this file
+      loadPdfHistoryForFile(activeFile)
       setPdfSearchTab('search')
     }
   }, [activeFile])
 
+  // Get storage key for current file's PDF search history
+  const getPdfSearchHistoryKey = (file) => {
+    if (!file) return null
+    const fileId = file.id || file.fname || file.fileUrl || ''
+    return `asn_pdf_search_history_${fileId}`
+  }
+
+  // Load search history for a specific PDF file
+  const loadPdfHistoryForFile = (file) => {
+    if (!file || file.type !== 'pdf') {
+      setPdfSearchHistory([])
+      setPdfHistoryIndex(-1)
+      return
+    }
+    try {
+      const key = getPdfSearchHistoryKey(file)
+      if (!key) return
+      const raw = sessionStorage.getItem(key)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length) {
+          setPdfSearchHistory(parsed.slice(0, 20))
+          setPdfHistoryIndex(-1)
+          return
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    setPdfSearchHistory([])
+    setPdfHistoryIndex(-1)
+  }
+
   const addPdfHistoryTerm = (term) => {
+    if (!activeFile) return
     const normalized = String(term || '').trim()
     if (!normalized) return
     setPdfSearchHistory(prev => {
       const existing = prev.filter(item => item !== normalized)
-      return [normalized, ...existing].slice(0, 20)
+      const next = [normalized, ...existing].slice(0, 20)
+      try {
+        const key = getPdfSearchHistoryKey(activeFile)
+        if (key) sessionStorage.setItem(key, JSON.stringify(next))
+      } catch (e) {}
+      return next
     })
     setPdfHistoryIndex(0)
   }
@@ -1372,33 +1446,59 @@ export default function App() {
   const prevMatch = () => goToMatch(matchCursor - 1)
 
   // --- Other (text) search & mark utilities ---
-  const addOtherHistoryTerm = (term) => {
-    const normalized = String(term || '').trim()
-    if (!normalized) return
-    setOtherSearchHistory(prev => {
-      const existing = prev.filter(item => item !== normalized)
-      const next = [normalized, ...existing].slice(0, 20)
-      try { sessionStorage.setItem('asn_other_search_history', JSON.stringify(next)) } catch (e) {}
-      return next
-    })
-    setOtherHistoryIndex(0)
+  // Get storage key for current file's search history
+  const getOtherSearchHistoryKey = (file) => {
+    if (!file) return null
+    const fileId = file.id || file.fname || file.fileUrl || ''
+    return `asn_other_search_history_${fileId}`
   }
 
-  // load persisted other search history on mount
-  useEffect(() => {
+  // Load search history for a specific file
+  const loadOtherHistoryForFile = (file) => {
+    if (!file) {
+      setOtherSearchHistory([])
+      setOtherHistoryIndex(-1)
+      return
+    }
     try {
-      const raw = sessionStorage.getItem('asn_other_search_history')
+      const key = getOtherSearchHistoryKey(file)
+      if (!key) return
+      const raw = sessionStorage.getItem(key)
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed) && parsed.length) {
           setOtherSearchHistory(parsed.slice(0, 20))
-          setOtherHistoryIndex(0)
+          setOtherHistoryIndex(-1)
+          return
         }
       }
     } catch (e) {
       // ignore
     }
-  }, [])
+    setOtherSearchHistory([])
+    setOtherHistoryIndex(-1)
+  }
+
+  const addOtherHistoryTerm = (term) => {
+    if (!activeFile) return
+    const normalized = String(term || '').trim()
+    if (!normalized) return
+    setOtherSearchHistory(prev => {
+      const existing = prev.filter(item => item !== normalized)
+      const next = [normalized, ...existing].slice(0, 20)
+      try {
+        const key = getOtherSearchHistoryKey(activeFile)
+        if (key) sessionStorage.setItem(key, JSON.stringify(next))
+      } catch (e) {}
+      return next
+    })
+    setOtherHistoryIndex(0)
+  }
+
+  // load persisted other search history when activeFile changes
+  useEffect(() => {
+    loadOtherHistoryForFile(activeFile)
+  }, [activeFile])
 
   const handleOtherSearchSubmit = () => {
     const term = String(otherSearch || '').trim()
