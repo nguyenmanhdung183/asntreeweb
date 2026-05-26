@@ -795,7 +795,9 @@ export default function App() {
   }, [comments])
   // Auto-save notes when they change (with debounce)
   useEffect(() => {
-    if (!Array.isArray(notes) || notes.length === 0) return
+    if (!Array.isArray(notes)) return
+    saveNotesToStorage(notes)
+    if (notes.length === 0) return
     setSyncStatus('saving')
     if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current)
     notesSaveTimeoutRef.current = setTimeout(async () => {
