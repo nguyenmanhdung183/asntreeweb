@@ -1249,6 +1249,14 @@ export default function App() {
   const prevPdfMatch = () => goToPdfMatch(-1)
   const nextPdfMatch = () => goToPdfMatch(1)
 
+  const jumpToCurrentPageMatch = () => {
+    if (!pdfSearchResults.total || pdfCurrentVisiblePage <= 0) return
+    const matchIndex = getFirstMatchIndexOnPage(pdfCurrentVisiblePage)
+    if (matchIndex >= 0) {
+      setPdfMatchIndex(matchIndex)
+    }
+  }
+
   const goPdfPage = (delta) => {
     if (!pdfDoc) return
     const current = Number(pdfPage) || 1
@@ -2164,6 +2172,9 @@ export default function App() {
                         <button className="btn-copy" type="button" onClick={nextPdfMatch} disabled={!pdfSearchResults.total} title="Next match">
                           ▶
                         </button>
+                        <button className="btn-copy" type="button" onClick={jumpToCurrentPageMatch} disabled={!pdfSearchResults.total} title="Jump to first match on current page">
+                          📍 Jump
+                        </button>
                         <button className="btn-copy" type="button" onClick={() => setPdfSearch('')} title="Clear">
                           ✕
                         </button>
@@ -2610,6 +2621,7 @@ export default function App() {
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button className="btn-copy" type="button" onClick={prevPdfMatch} disabled={!pdfSearchResults.total} title="Previous result">◀</button>
                             <button className="btn-copy" type="button" onClick={nextPdfMatch} disabled={!pdfSearchResults.total} title="Next result">▶</button>
+                            <button className="btn-copy" type="button" onClick={jumpToCurrentPageMatch} disabled={!pdfSearchResults.total} title="Jump to first match on current page">📍</button>
                           </div>
                         </div>
                         <div className="pdf-search-actions">
